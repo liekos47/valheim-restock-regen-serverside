@@ -25,6 +25,8 @@ namespace RestockRegen
 		internal static void FindPrefabs()
 		{
 			Prefabs.Clear();
+			var excluded = new HashSet<string>(
+				RestockRegenPlugin.Exclude.Value.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0));
 			foreach (GameObject prefab in ZNetScene.instance.m_prefabs)
 			{
 				if (prefab == null)
@@ -36,14 +38,24 @@ namespace RestockRegen
 				{
 					continue;
 				}
+				if (excluded.Contains(prefab.name))
+				{
+					RestockRegenPlugin.Log.LogInfo($"loot prefab {prefab.name}: excluded by config");
+					continue;
+				}
 				Prefabs[prefab.name.GetStableHashCode()] = container;
+				// Always logged: a chest that deletes itself when emptied can never be restocked.
+				// None did in l-1.0.16, buried treasure included.
+				if (container.m_autoDestroyEmpty)
+				{
+					RestockRegenPlugin.Log.LogWarning($"loot prefab {prefab.name}: deletes itself when emptied, cannot be restocked");
+				}
 				if (RestockRegenPlugin.Verbose.Value)
 				{
 					RestockRegenPlugin.Log.LogInfo(
 						$"loot prefab {prefab.name}: {container.m_width}x{container.m_height}, " +
 						$"{container.m_defaultItems.m_drops.Count} drops, rolls {container.m_defaultItems.m_dropMin}-{container.m_defaultItems.m_dropMax}" +
-						(container.m_autoDestroyEmpty ? ", autoDestroyEmpty" : "") +
-						(prefab.GetComponent<Piece>() != null ? ", has Piece" : ""));
+						(container.m_autoDestroyEmpty ? ", autoDestroyEmpty" : ""));
 				}
 			}
 		}

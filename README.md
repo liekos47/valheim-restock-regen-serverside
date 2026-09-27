@@ -8,17 +8,20 @@ from its own loot table.
 
 ## Status
 
-0.1.0 is a read-only census and does not restock anything yet. On world load it logs how many loot
-chests exist and how many are empty. Restocking comes in the next version.
+On world load the server logs a census of loot chests. After that it sweeps once per in-game day,
+which covers normal dawn, sleeping through the night, and a server running with nobody online. One
+sweep over a world of about 1.4 million objects takes well under a tenth of a second.
 
 ## Rules
 
+- Hildir's three quest chests are excluded by default, so her quest items are not handed out again.
 - Only chests whose prefab has a loot table are touched. Player-built chests, carts, ships,
   tombstones and cargo crates have none and are never touched.
 - Only **empty** chests refill. A chest holding anything at all is left alone.
 - Each chest has its own clock, which starts the day the server first sees it empty. Installing on
   an old world does not refill everything at once.
-- A chest that a player currently has loaded is skipped and tried again later.
+- A chest that a player currently has loaded is skipped and tried again at the next day's sweep.
+- A chest that is destroyed (smashed or burnt) is gone from the world and cannot come back.
 
 ## Configuration
 
@@ -28,7 +31,12 @@ chests exist and how many are empty. Restocking comes in the next version.
 | --- | --- | --- |
 | `Enabled` | `true` | Off leaves the plugin loaded and doing nothing. |
 | `Days` | `30` | In-game days a chest must stay empty before it refills. A Valheim day is 20 real minutes. |
-| `Verbose` | `false` | Log one line per chest prefab and per decision. |
+| `Verbose` | `false` | Log one line per chest prefab and per restocked chest. |
+| `DryRun` | `false` | Count and log what would happen, but write nothing to the world. |
+| `Exclude` | Hildir's three quest chests | Comma-separated chest prefab names never to restock. Needs a restart. |
+
+The clock is stored on each chest as `restockregen_emptysince`. Removing the mod leaves that value
+behind, where the game ignores it.
 
 ## Installation
 

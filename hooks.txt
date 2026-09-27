@@ -22,3 +22,22 @@ field:DropTable.m_dropMin
 field:DropTable.m_dropMax
 field:ZDOVars.s_items
 field:ZDOVars.s_creator
+# 0.2.0 restock
+ZDOMan.GetSessionID
+ZDO.HasOwner
+ZDO.GetOwner
+ZDO.GetInt
+ZDO.Set
+ZDO.GetPosition
+Inventory..ctor
+Inventory.AddItem
+Inventory.NrOfItems
+Inventory.Save
+ZPackage..ctor
+ZPackage.GetArray
+Game.ScaleDrops
+ZDOMan.ReleaseNearbyZDOS
+field:Game.instance
+field:Container.m_name
+field:ItemDrop/ItemData.m_dropPrefab
+field:ItemDrop/ItemData.m_stack
