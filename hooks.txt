@@ -1,0 +1,24 @@
+# RestockRegen - every game member the code uses. Check with HookCheck --check hooks.txt after a game update.
+ZNet.IsServer
+ZNet.GetTimeSeconds
+ZNetScene.GetPrefab
+EnvMan.GetDay
+ZDO.GetPrefab
+ZDO.GetByteArray
+ZDO.GetLong
+DropTable.GetDropListItems
+field:ZNet.m_instance
+field:ZDOMan.s_instance
+field:ZDOMan.m_objectsByID
+field:ZNetScene.s_instance
+field:ZNetScene.m_prefabs
+field:EnvMan.s_instance
+field:Container.m_defaultItems
+field:Container.m_width
+field:Container.m_height
+field:Container.m_autoDestroyEmpty
+field:DropTable.m_drops
+field:DropTable.m_dropMin
+field:DropTable.m_dropMax
+field:ZDOVars.s_items
+field:ZDOVars.s_creator

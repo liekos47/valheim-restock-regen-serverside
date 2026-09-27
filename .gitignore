@@ -1,0 +1,22 @@
+# Notes and handovers stay local (the owner's rule: no markdown or sensitive details on GitHub).
+# README.md and CHANGELOG.md are the mod's public docs and are committed.
+HANDOVER.md
+NOTES*.md
+*-notes.md
+
+# Upstream Dvala source and release, kept for reference only. Not ours to republish.
+upstream/
+
+# Game and BepInEx assemblies to compile against. Iron Gate's, not redistributable.
+refs/
+
+# Local copies of the live world save and scan output. Never commit.
+worldcopy/
+
+# Build output
+bin/
+obj/
+pkg/
+*.zip
+*.user
+.vs/
