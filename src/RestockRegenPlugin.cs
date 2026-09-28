@@ -23,7 +23,7 @@ namespace RestockRegen
 		// Working name; the final name is still to be chosen. Changing Guid renames the config file.
 		public const string Guid = "liekos47.restockregen";
 		public const string Name = "RestockRegen";
-		public const string Version = "0.3.0";
+		public const string Version = "0.4.0";
 
 		internal static ManualLogSource Log;
 
@@ -32,6 +32,12 @@ namespace RestockRegen
 		internal static ConfigEntry<bool> Verbose;
 		internal static ConfigEntry<bool> DryRun;
 		internal static ConfigEntry<string> Exclude;
+		internal static ConfigEntry<bool> Notify;
+		internal static ConfigEntry<string> NotifyText;
+		internal static ConfigEntry<string> NotifyDueText;
+		internal static ConfigEntry<bool> ShowHistory;
+		internal static ConfigEntry<string> HistoryText;
+		internal static ConfigEntry<string> HistoryTextOnce;
 
 		private Harmony harmony;
 		private bool censusDone;
@@ -55,6 +61,20 @@ namespace RestockRegen
 				"TreasureChest_forestcrypt_hildir,TreasureChest_mountaincave_hildir,TreasureChest_plainsfortress_hildir",
 				"Comma-separated chest prefab names never to restock. The default is Hildir's three quest chests, " +
 				"which each hold one of her quest items. Read once at world load: changing it needs a restart.");
+
+			Notify = Config.Bind("Notify", "Notify", true,
+				"Show a message in the middle of the screen when a player opens an empty loot chest, or takes the last item out of one, saying when it restocks.");
+			NotifyText = Config.Bind("Notify", "NotifyText", "The spirits will refill this chest in {days}",
+				"The message. {days} becomes \"1 day\" or \"N days\" (in-game days).");
+			NotifyDueText = Config.Bind("Notify", "NotifyDueText", "The spirits will refill this chest at the next dawn, once no one is near",
+				"The message for a chest whose time is already up. It restocks at the next daily sweep that finds no player holding it.");
+
+			ShowHistory = Config.Bind("History", "History", true,
+				"Remember who first opened each loot chest and who opened it last, and tell the next player who opens it (top-left message).");
+			HistoryText = Config.Bind("History", "HistoryText", "Last opened by {last} {lastago}, first by {first} {firstago}",
+				"{last}/{first} are character names (\"you\" for the player reading it), {lastago}/{firstago} are \"today\", \"yesterday\" or \"N days ago\" in in-game days.");
+			HistoryTextOnce = Config.Bind("History", "HistoryTextOnce", "Last opened by {last} {lastago}",
+				"Used instead when only one opening has been recorded so far.");
 
 			harmony = new Harmony(Guid);
 			harmony.PatchAll();
@@ -81,6 +101,7 @@ namespace RestockRegen
 					censusDone = true;
 					LootChests.Census();
 				}
+				History.Flush();
 				int today = EnvMan.instance.GetDay();
 				if (today == lastSweepDay)
 				{

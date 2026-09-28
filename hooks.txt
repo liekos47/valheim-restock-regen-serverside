@@ -41,3 +41,20 @@ field:Game.instance
 field:Container.m_name
 field:ItemDrop/ItemData.m_dropPrefab
 field:ItemDrop/ItemData.m_stack
+# 0.4.0 notify: Harmony postfix target, and what it reads and calls
+ZDO.Deserialize
+ZDOMan.RPC_ZDOData
+Container.RPC_RequestOpen
+Container.UpdateUseVisual
+ZDO.GetOwner
+ZNet.GetPeer
+ZRoutedRpc.InvokeRoutedRPC
+MessageHud.RPC_ShowMessage
+field:ZDO.m_uid
+field:ZDOVars.s_inUse
+field:ZRoutedRpc.s_instance
+# 0.4.0 history
+ZDO.GetString
+ZDOMan.GetZDO
+field:ZNetPeer.m_playerName
+field:ZNetPeer.m_uid

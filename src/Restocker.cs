@@ -50,6 +50,20 @@ namespace RestockRegen
 			}
 		}
 
+		// Days until the chest's restock sweep, from the stamp or, before the first sweep has stamped
+		// it, from the day the Notifier first saw it empty. 0 or less means due now: it restocks at
+		// the next sweep that finds nobody holding it.
+		internal static int DaysLeft(ZDO zdo, int today)
+		{
+			int days = Mathf.Max(1, RestockRegenPlugin.Days.Value);
+			int stamp = GetStamp(zdo, RestockRegenPlugin.DryRun.Value);
+			if (stamp != 0)
+			{
+				return days - (today - (stamp - 1));
+			}
+			return Notifier.FirstSeenEmpty.TryGetValue(zdo.m_uid, out int firstSeen) ? days - (today - firstSeen) : days;
+		}
+
 		internal struct Result
 		{
 			public int Chests, Stamped, Cleared, Restocked, Waiting, Loaded, RolledNothing;
@@ -86,6 +100,7 @@ namespace RestockRegen
 				int stamp = GetStamp(zdo, dryRun);
 				if (count > 0)
 				{
+					Notifier.FirstSeenEmpty.Remove(zdo.m_uid);
 					if (stamp != 0)
 					{
 						result.Cleared++;
@@ -95,9 +110,20 @@ namespace RestockRegen
 				}
 				if (stamp == 0)
 				{
+					// Start the clock from the day a player was first seen emptying it, if the
+					// Notifier caught that, so the countdown they were shown is the one that runs.
+					if (!Notifier.FirstSeenEmpty.TryGetValue(zdo.m_uid, out int firstSeen) || firstSeen > today)
+					{
+						firstSeen = today;
+					}
+					Notifier.FirstSeenEmpty.Remove(zdo.m_uid);
 					result.Stamped++;
-					SetStamp(zdo, today + 1, dryRun);
-					continue;
+					SetStamp(zdo, firstSeen + 1, dryRun);
+					stamp = firstSeen + 1;
+					if (today - firstSeen < days)
+					{
+						continue;
+					}
 				}
 				int emptyFor = today - (stamp - 1);
 				if (emptyFor < days)

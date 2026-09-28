@@ -1,3 +1,21 @@
+## 0.4.0
+
+- On-screen notice. When a player opens an empty loot chest, or takes the last item out of one,
+  the middle of their screen says when it restocks: "The spirits will refill this chest in 30 days". Still
+  server-side only: the server sees the chest's in-use flag and new owner in the player's normal
+  update and sends the message through the game's own ShowMessage.
+- The countdown starts from the moment a player was seen emptying the chest, not from the next
+  daily sweep, so the number on screen is the one that runs. That moment is kept in memory until
+  the sweep stamps the chest; after a restart the sweep's own day is used.
+- Settings `Notify`, `NotifyText` (with `{days}`) and `NotifyDueText`.
+- Chest history. Each loot chest remembers who first opened it and who opened it last, with the
+  in-game day, and the next player to open it is told in the top-left: "Last opened by Bjorn
+  3 days ago, first by Astrid 12 days ago". Settings `History`, `HistoryText`, `HistoryTextOnce`.
+  Recording starts with this version; earlier openings are not known.
+- History is written to the chest only once no player holds it: the server drops a player's update
+  to an object whose revision it has already moved past, so writing to a chest in use could make
+  the player's next change to it, such as taking an item, get lost.
+
 ## 0.3.0
 
 - Hildir's three quest chests (`TreasureChest_forestcrypt_hildir`, `TreasureChest_mountaincave_hildir`,
