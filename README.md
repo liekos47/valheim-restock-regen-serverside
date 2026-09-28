@@ -31,6 +31,23 @@ sweep over a world of about 1.4 million objects takes well under a tenth of a se
 - A chest that a player currently has loaded is skipped and tried again at the next day's sweep.
 - A chest that is destroyed (smashed or burnt) is gone from the world and cannot come back.
 
+## Muddy scrap piles
+
+Sunken crypts get their muddy scrap piles back once nobody has visited them for 30 in-game days.
+Every visit starts the count again, so a crypt people keep going back to stays as it is.
+
+Mining a pile does not mark it, it replaces it: the first hit swaps the whole pile for a broken
+one, and breaking every chunk of that deletes it. So the mod remembers each pile's spot from the
+first time it sees it, whole or broken, and stores the list on the crypt. A pile that was mined
+out completely before the mod was installed left nothing behind and cannot come back.
+
+A player arriving at the entrance of a sunken crypt with mined piles is told how long is left:
+"The spirits will restore muddy scrap piles in 12 days if no one enters". If they go in anyway,
+their visit restarts the count and they are told again: "The spirits will restore muddy scrap
+piles after 30 days without visitors". Players are
+checked every 30 seconds, so the message can take up to half a minute to appear. Standing at the
+entrance does not count as a visit; only going inside does.
+
 ## Configuration
 
 `BepInEx/config/liekos47.restockregen.cfg`, written on first run. The file is re-read every 30 seconds.
@@ -49,6 +66,15 @@ sweep over a world of about 1.4 million objects takes well under a tenth of a se
 | `HistoryTextOnce` | `Last opened by {last} {lastago}` | Used when only one opening is recorded. |
 | `ResetOpened` | `true` | Reset a chest 30 days after it is first opened, even with leftovers inside. Off: only empty chests reset. |
 | `NotifyLeftoversText` | `The spirits will refill this chest in {days}. Anything left inside will be lost` | The message when the chest still has items in it. |
+| `MudPiles` | `true` | Regenerate muddy scrap piles in sunken crypts left unvisited for `MudPileDays`. |
+| `MudPileDays` | `30` | In-game days without a visitor before a crypt's piles come back. |
+| `MudPileDryRun` | `false` | Log which crypts would regenerate, change nothing. |
+| `MudPileEntranceText` | `The spirits will restore muddy scrap piles in {days} if no one enters` | Shown at the entrance, with the days left. |
+| `MudPileDueText` | `The spirits will restore muddy scrap piles at the next dawn if no one enters` | Shown at the entrance when the time is already up. |
+| `VisitCheckSeconds` | `30` | How often players at or in sunken crypts are checked. |
+| `EntranceRadius` | `30` | Metres around a crypt's entrance where players on the surface get the message. |
+| `CryptRadius` | `200` | Metres from a crypt's generator that count as inside it. |
+| `MudPileNotifyText` | `The spirits will restore muddy scrap piles after {days} without visitors` | Shown on walking into a crypt with mined piles. |
 | `Exclude` | Hildir's three quest chests | Comma-separated chest prefab names never to restock. Needs a restart. |
 
 The clock is stored on each chest as `restockregen_emptysince`, and the history as `restockregen_firstby`,

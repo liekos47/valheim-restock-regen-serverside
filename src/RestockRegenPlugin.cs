@@ -23,7 +23,7 @@ namespace RestockRegen
 		// Working name; the final name is still to be chosen. Changing Guid renames the config file.
 		public const string Guid = "liekos47.restockregen";
 		public const string Name = "RestockRegen";
-		public const string Version = "0.5.0";
+		public const string Version = "0.6.0";
 
 		internal static ManualLogSource Log;
 
@@ -37,12 +37,23 @@ namespace RestockRegen
 		internal static ConfigEntry<string> NotifyDueText;
 		internal static ConfigEntry<string> NotifyLeftoversText;
 		internal static ConfigEntry<bool> ResetOpened;
+		internal static ConfigEntry<bool> MudPiles;
+		internal static ConfigEntry<int> MudPileDays;
+		internal static ConfigEntry<bool> MudPileDryRun;
+		internal static ConfigEntry<float> CryptRadius;
+		internal static ConfigEntry<string> MudPileNotifyText;
+		internal static ConfigEntry<string> MudPileEntranceText;
+		internal static ConfigEntry<string> MudPileDueText;
+		internal static ConfigEntry<int> VisitCheckSeconds;
+		internal static ConfigEntry<float> EntranceRadius;
 		internal static ConfigEntry<bool> ShowHistory;
 		internal static ConfigEntry<string> HistoryText;
 		internal static ConfigEntry<string> HistoryTextOnce;
 
 		private Harmony harmony;
 		private bool censusDone;
+		private bool mudFailed;
+		private float nextMudTick;
 		private int lastSweepDay = -1;
 		private float nextCheck;
 
@@ -83,6 +94,32 @@ namespace RestockRegen
 			HistoryTextOnce = Config.Bind("History", "HistoryTextOnce", "Last opened by {last} {lastago}",
 				"Used instead when only one opening has been recorded so far.");
 
+			MudPiles = Config.Bind("MudPiles", "MudPiles", true,
+				"Regenerate muddy scrap piles in sunken crypts that no player has visited for MudPileDays in-game days. " +
+				"Only piles the mod has seen, intact or partly mined, can come back: one mined out before it was installed left no trace.");
+			MudPileDays = Config.Bind("MudPiles", "MudPileDays", 30,
+				"In-game days a sunken crypt must go unvisited before its piles regenerate. Any visit starts the count again.");
+			MudPileDryRun = Config.Bind("MudPiles", "MudPileDryRun", false,
+				"Log which crypts would regenerate, but create and remove nothing and write nothing. Visits are then tracked in memory only.");
+			MudPileNotifyText = Config.Bind("MudPiles", "MudPileNotifyText",
+				"The spirits will restore muddy scrap piles after {days} without visitors",
+				"Shown to a player inside a sunken crypt with mined piles (needs Notify on). Their visit has just restarted the clock, so {days} is the full MudPileDays. {mined} is how many, {piles} is " +
+				"\"muddy scrap pile(s)\", {days} is MudPileDays. Every visit restarts the count, so it is always the full number of days.");
+			MudPileEntranceText = Config.Bind("MudPiles", "MudPileEntranceText",
+				"The spirits will restore muddy scrap piles in {days} if no one enters",
+				"Shown at the entrance of a sunken crypt with mined piles. {days} is what is left of the crypt's clock; going in restarts it.");
+			MudPileDueText = Config.Bind("MudPiles", "MudPileDueText",
+				"The spirits will restore muddy scrap piles at the next dawn if no one enters",
+				"Shown at the entrance when the crypt's time is already up. It regenerates at the next daily sweep with nobody nearby.");
+			VisitCheckSeconds = Config.Bind("MudPiles", "VisitCheckSeconds", 30,
+				"Real seconds between checks for players at or inside sunken crypts. A visit shorter than this can go unnoticed, " +
+				"and the message can arrive up to this long after a player gets there.");
+			EntranceRadius = Config.Bind("MudPiles", "EntranceRadius", 30f,
+				"Metres, measured flat, around a sunken crypt's entrance within which a player on the surface is told about its mined piles. " +
+				"Standing there does not count as a visit.");
+			CryptRadius = Config.Bind("MudPiles", "CryptRadius", 200f,
+				"Metres, measured flat from a sunken crypt's generator, within which a player up at dungeon height counts as inside that crypt, and a pile belongs to it.");
+
 			harmony = new Harmony(Guid);
 			harmony.PatchAll();
 			Log.LogInfo($"{Name} {Version} loaded");
@@ -107,14 +144,31 @@ namespace RestockRegen
 				{
 					censusDone = true;
 					LootChests.Census();
+					RunMud(() => RestockRegen.MudPiles.Init());
 				}
 				History.Flush();
 				int today = EnvMan.instance.GetDay();
+				if (Time.time >= nextMudTick)
+				{
+					nextMudTick = Time.time + Mathf.Max(5, VisitCheckSeconds.Value);
+					RunMud(() => RestockRegen.MudPiles.Tick(today));
+				}
 				if (today == lastSweepDay)
 				{
 					return;
 				}
 				lastSweepDay = today;
+				RunMud(() =>
+				{
+					var mudWatch = System.Diagnostics.Stopwatch.StartNew();
+					RestockRegen.MudPiles.Result m = RestockRegen.MudPiles.Sweep(today);
+					if (MudPiles.Value)
+					{
+						Log.LogInfo($"day {today} mud piles{(MudPileDryRun.Value ? " (dry run)" : "")}: {m.Crypts} sunken crypts, " +
+							$"{m.Regenerated} regenerated ({m.Replaced} partly mined piles replaced, {m.Rebuilt} rebuilt), " +
+							$"{m.Waiting} waiting, {m.Occupied} skipped as occupied, {mudWatch.ElapsedMilliseconds} ms");
+					}
+				});
 				var watch = System.Diagnostics.Stopwatch.StartNew();
 				Restocker.Result r = Restocker.Sweep(today, DryRun.Value, Verbose.Value);
 				Log.LogInfo($"day {today}{(DryRun.Value ? " (dry run)" : "")}: {r.Chests} loot chests, " +
@@ -125,6 +179,25 @@ namespace RestockRegen
 			catch (Exception e)
 			{
 				Log.LogError($"sweep failed: {e}");
+			}
+		}
+
+		// The mud pile module is new and creates and removes objects; a fault in it must not stop
+		// chest restocking. After one exception it switches itself off until the next restart.
+		private void RunMud(Action action)
+		{
+			if (mudFailed)
+			{
+				return;
+			}
+			try
+			{
+				action();
+			}
+			catch (Exception e)
+			{
+				mudFailed = true;
+				Log.LogError($"mud piles failed and are off until restart: {e}");
 			}
 		}
 

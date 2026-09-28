@@ -1,3 +1,21 @@
+## 0.6.0
+
+- Muddy scrap piles in sunken crypts regenerate. A sunken crypt that no player has visited for
+  `MudPileDays` (30) in-game days gets every mined pile back: partly mined piles are replaced by
+  whole ones and mined-out spots get a pile again. Any visit restarts the count.
+- The mod remembers each pile's spot from the first time it sees the pile, whole or partly mined,
+  and keeps the list on the crypt itself. A pile mined out completely before the mod saw it cannot
+  come back. On the owner's world none had been: every mined pile still left its broken remains.
+- Arriving at the entrance of a crypt with mined piles (within 30 m) shows the days left: "The
+  spirits will restore muddy scrap piles in 12 days if no one enters". Going in anyway restarts
+  the count and shows it again with the full 30 days: "The spirits will restore muddy scrap piles after
+  30 days without visitors" (`MudPileNotifyText`).
+- New settings in `[MudPiles]`: `MudPiles`, `MudPileDays`, `MudPileDryRun`, `CryptRadius`,
+  `MudPileNotifyText`, `MudPileEntranceText`, `MudPileDueText`, `VisitCheckSeconds` (30),
+  `EntranceRadius` (30). Chests are unchanged.
+- This is the first feature that creates and removes world objects. A fault in it switches it off
+  until the next restart and leaves chest restocking running.
+
 ## 0.5.0
 
 - Leftovers reset too. A loot chest now resets 30 days after a player first opens it, whether it
