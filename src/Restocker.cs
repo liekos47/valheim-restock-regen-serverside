@@ -6,11 +6,17 @@ namespace RestockRegen
 	/*
 		The daily sweep. Once per in-game day, for every loot chest in the world:
 
-		- holding items: clear its empty-since stamp, if it has one;
-		- empty, no stamp: stamp it with today;
-		- empty, stamped Days or more days ago: roll its loot table into it and clear the stamp.
+		- no clock yet, and empty or opened by a player: start its clock (the stamp), from the day
+		  the Notifier saw that happen if it did, otherwise today;
+		- clock started Days or more days ago: replace whatever is inside with a fresh roll of its
+		  loot table, and stop the clock until the next time it is emptied or opened.
 
-		The stamp lives on the chest's own ZDO as day + 1, so 0 always means "no clock" and
+		With ResetOpened (the default) a chest that still has leftovers in it keeps its clock, so an
+		opened chest resets Days after it was first opened whether or not it was emptied. With it
+		off, only empty chests are on a clock, and anything put back in a chest stops it.
+
+		The stamp is stored under the key "restockregen_emptysince" for compatibility with 0.2-0.4,
+		where it only ever meant "empty since". It lives on the chest's own ZDO as day + 1, so 0 always means "no clock" and
 		clearing is a plain Set that bumps the data revision. ZDO.RemoveInt would not bump it, so a
 		client holding an older copy could hand the stale stamp back later.
 
@@ -61,7 +67,7 @@ namespace RestockRegen
 			{
 				return days - (today - (stamp - 1));
 			}
-			return Notifier.FirstSeenEmpty.TryGetValue(zdo.m_uid, out int firstSeen) ? days - (today - firstSeen) : days;
+			return Notifier.ClockStart.TryGetValue(zdo.m_uid, out int start) ? days - (today - start) : days;
 		}
 
 		internal struct Result
@@ -98,9 +104,10 @@ namespace RestockRegen
 				}
 
 				int stamp = GetStamp(zdo, dryRun);
-				if (count > 0)
+				bool seen = Notifier.ClockStart.TryGetValue(zdo.m_uid, out int start);
+				if (count > 0 && !RestockRegenPlugin.ResetOpened.Value)
 				{
-					Notifier.FirstSeenEmpty.Remove(zdo.m_uid);
+					Notifier.ClockStart.Remove(zdo.m_uid);
 					if (stamp != 0)
 					{
 						result.Cleared++;
@@ -110,17 +117,21 @@ namespace RestockRegen
 				}
 				if (stamp == 0)
 				{
-					// Start the clock from the day a player was first seen emptying it, if the
-					// Notifier caught that, so the countdown they were shown is the one that runs.
-					if (!Notifier.FirstSeenEmpty.TryGetValue(zdo.m_uid, out int firstSeen) || firstSeen > today)
+					if (count > 0 && !seen)
 					{
-						firstSeen = today;
+						continue; // still has its loot and nobody has been seen opening it
 					}
-					Notifier.FirstSeenEmpty.Remove(zdo.m_uid);
+					// Start the clock from the day a player was seen opening or emptying it, if the
+					// Notifier caught that, so the countdown they were shown is the one that runs.
+					if (!seen || start > today)
+					{
+						start = today;
+					}
+					Notifier.ClockStart.Remove(zdo.m_uid);
 					result.Stamped++;
-					SetStamp(zdo, firstSeen + 1, dryRun);
-					stamp = firstSeen + 1;
-					if (today - firstSeen < days)
+					SetStamp(zdo, start + 1, dryRun);
+					stamp = start + 1;
+					if (today - start < days)
 					{
 						continue;
 					}
@@ -135,14 +146,14 @@ namespace RestockRegen
 				{
 					result.Restocked++;
 					SetStamp(zdo, 0, dryRun);
-					if (verbose) RestockRegenPlugin.Log.LogInfo($"dry run: would restock {prefab.name} at {Where(zdo)}, empty {emptyFor} days");
+					if (verbose) RestockRegenPlugin.Log.LogInfo($"dry run: would restock {prefab.name} at {Where(zdo)} after {emptyFor} days, replacing {count} stacks");
 					continue;
 				}
 				if (Restock(zdo, prefab, out string rolled))
 				{
 					zdo.Set(s_emptySince, 0);
 					result.Restocked++;
-					if (verbose) RestockRegenPlugin.Log.LogInfo($"restocked {prefab.name} at {Where(zdo)} after {emptyFor} days: {rolled}");
+					if (verbose) RestockRegenPlugin.Log.LogInfo($"restocked {prefab.name} at {Where(zdo)} after {emptyFor} days, replacing {count} stacks: {rolled}");
 				}
 				else
 				{
@@ -154,6 +165,7 @@ namespace RestockRegen
 
 		// Rolls the prefab's loot table into a fresh inventory of the prefab's size and writes it to
 		// the chest, the same way Container.AddDefaultItems and Container.Save do on a client.
+		// Whatever was in the chest is replaced, not added to.
 		private static bool Restock(ZDO zdo, Container prefab, out string rolled)
 		{
 			rolled = "";

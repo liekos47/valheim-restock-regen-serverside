@@ -1,3 +1,17 @@
+## 0.5.0
+
+- Leftovers reset too. A loot chest now resets 30 days after a player first opens it, whether it
+  was emptied or not: whatever is inside at that point, loot or junk, is replaced by a fresh roll.
+  Agreed with the players. `ResetOpened` (on) controls it; off gives the old rule, where only
+  completely empty chests restock and putting anything back in stops the clock.
+- The on-screen notice now shows on every opening of a loot chest. With items inside it warns:
+  "The spirits will refill this chest in 30 days. Anything left inside will be lost"
+  (`NotifyLeftoversText`).
+- Chests opened before this version still hold their leftovers until someone opens them again;
+  that opening starts their clock.
+- The daily log line says "clocks started" instead of "newly empty", and each restock line says
+  how many stacks it replaced.
+
 ## 0.4.0
 
 - On-screen notice. When a player opens an empty loot chest, or takes the last item out of one,

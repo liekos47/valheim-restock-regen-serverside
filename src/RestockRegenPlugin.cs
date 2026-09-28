@@ -23,7 +23,7 @@ namespace RestockRegen
 		// Working name; the final name is still to be chosen. Changing Guid renames the config file.
 		public const string Guid = "liekos47.restockregen";
 		public const string Name = "RestockRegen";
-		public const string Version = "0.4.0";
+		public const string Version = "0.5.0";
 
 		internal static ManualLogSource Log;
 
@@ -35,6 +35,8 @@ namespace RestockRegen
 		internal static ConfigEntry<bool> Notify;
 		internal static ConfigEntry<string> NotifyText;
 		internal static ConfigEntry<string> NotifyDueText;
+		internal static ConfigEntry<string> NotifyLeftoversText;
+		internal static ConfigEntry<bool> ResetOpened;
 		internal static ConfigEntry<bool> ShowHistory;
 		internal static ConfigEntry<string> HistoryText;
 		internal static ConfigEntry<string> HistoryTextOnce;
@@ -57,6 +59,9 @@ namespace RestockRegen
 			DryRun = Config.Bind("General", "DryRun", false,
 				"Count and log what would happen, but write nothing to the world. Empty-since dates are kept in memory instead, so a dry run still comes due; they reset on restart.");
 
+			ResetOpened = Config.Bind("General", "ResetOpened", true,
+				"On: a loot chest resets Days after a player first opens it, even if items are left in it, and whatever is inside then is replaced by a fresh roll. " +
+				"Off: only chests that are completely empty are on a clock, and putting anything back in stops it.");
 			Exclude = Config.Bind("General", "Exclude",
 				"TreasureChest_forestcrypt_hildir,TreasureChest_mountaincave_hildir,TreasureChest_plainsfortress_hildir",
 				"Comma-separated chest prefab names never to restock. The default is Hildir's three quest chests, " +
@@ -66,6 +71,8 @@ namespace RestockRegen
 				"Show a message in the middle of the screen when a player opens an empty loot chest, or takes the last item out of one, saying when it restocks.");
 			NotifyText = Config.Bind("Notify", "NotifyText", "The spirits will refill this chest in {days}",
 				"The message. {days} becomes \"1 day\" or \"N days\" (in-game days).");
+			NotifyLeftoversText = Config.Bind("Notify", "NotifyLeftoversText", "The spirits will refill this chest in {days}. Anything left inside will be lost",
+				"The message when the chest still has items in it (only with ResetOpened).");
 			NotifyDueText = Config.Bind("Notify", "NotifyDueText", "The spirits will refill this chest at the next dawn, once no one is near",
 				"The message for a chest whose time is already up. It restocks at the next daily sweep that finds no player holding it.");
 
@@ -111,7 +118,7 @@ namespace RestockRegen
 				var watch = System.Diagnostics.Stopwatch.StartNew();
 				Restocker.Result r = Restocker.Sweep(today, DryRun.Value, Verbose.Value);
 				Log.LogInfo($"day {today}{(DryRun.Value ? " (dry run)" : "")}: {r.Chests} loot chests, " +
-					$"{r.Restocked} restocked, {r.Stamped} newly empty, {r.Waiting} waiting, {r.Cleared} refilled by players, " +
+					$"{r.Restocked} restocked, {r.Stamped} clocks started, {r.Waiting} waiting, {r.Cleared} refilled by players, " +
 					$"{r.Loaded} skipped as loaded by a player" + (r.RolledNothing > 0 ? $", {r.RolledNothing} rolled nothing (retry next day)" : "") +
 					$", {watch.ElapsedMilliseconds} ms");
 			}

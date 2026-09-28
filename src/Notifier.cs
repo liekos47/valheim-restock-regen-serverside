@@ -7,6 +7,9 @@ namespace RestockRegen
 		Tells a player, on screen, when the loot chest they have open is empty and how long until it
 		restocks, and who opened it before them (see History). Server-side, no client code.
 
+		With ResetOpened the notice is shown on every opening of a loot chest, not only an empty one,
+		since every opened chest is on a clock; with items inside it warns they will be replaced.
+
 		Opening a chest happens on a client, but two things reach the server. Container.RPC_RequestOpen
 		hands ownership of the chest to the player opening it, and that player's Container then sets
 		ZDOVars.s_inUse on the chest. Both arrive in the player's next ZDO update, which the server
@@ -28,10 +31,11 @@ namespace RestockRegen
 		// Cleared when the chest closes or gets items again.
 		private static readonly HashSet<ZDOID> s_announced = new HashSet<ZDOID>();
 
-		// The day each chest was first seen empty by this hook, before the daily sweep has stamped it.
-		// The sweep uses it as the stamp, so the countdown a player was shown is the one that runs.
-		// Kept in memory only: after a restart the sweep falls back to stamping with its own day.
-		internal static readonly Dictionary<ZDOID, int> FirstSeenEmpty = new Dictionary<ZDOID, int>();
+		// The day each chest's clock started as seen by this hook - first seen empty, or with
+		// ResetOpened first opened - before the daily sweep has stamped it. The sweep uses it as the
+		// stamp, so the countdown a player was shown is the one that runs. Kept in memory only:
+		// after a restart the sweep falls back to stamping with its own day.
+		internal static readonly Dictionary<ZDOID, int> ClockStart = new Dictionary<ZDOID, int>();
 
 		private static void Postfix(ZDO __instance)
 		{
@@ -52,14 +56,16 @@ namespace RestockRegen
 			int today = EnvMan.instance != null ? EnvMan.instance.GetDay() : 0;
 			int? count = LootChests.ItemCount(__instance);
 			bool empty = count == 0;
-			if (!empty)
+			bool resetOpened = RestockRegenPlugin.ResetOpened.Value;
+			bool unclocked = !ClockStart.ContainsKey(id) && __instance.GetInt(Restocker.s_emptySince) == 0;
+			if (empty && unclocked)
+			{
+				ClockStart[id] = today;
+			}
+			else if (!empty && !resetOpened)
 			{
 				s_announced.Remove(id);
-				FirstSeenEmpty.Remove(id);
-			}
-			else if (!FirstSeenEmpty.ContainsKey(id) && __instance.GetInt(Restocker.s_emptySince) == 0)
-			{
-				FirstSeenEmpty[id] = today;
+				ClockStart.Remove(id);
 			}
 
 			if (__instance.GetInt(ZDOVars.s_inUse) != 1)
@@ -77,7 +83,12 @@ namespace RestockRegen
 				return;
 			}
 
-			if (s_open.Add(id) && RestockRegenPlugin.ShowHistory.Value)
+			bool opening = s_open.Add(id);
+			if (opening && resetOpened && unclocked && count != null)
+			{
+				ClockStart[id] = today; // with ResetOpened the clock starts at the opening, leftovers or not
+			}
+			if (opening && RestockRegenPlugin.ShowHistory.Value)
 			{
 				History.Record before = History.Opened(__instance, peer.m_playerName, today);
 				string seen = History.Message(before, peer.m_playerName, today);
@@ -87,11 +98,12 @@ namespace RestockRegen
 				}
 			}
 
-			if (empty && RestockRegenPlugin.Notify.Value && s_announced.Add(id))
+			if ((empty || resetOpened) && count != null && RestockRegenPlugin.Notify.Value && s_announced.Add(id))
 			{
 				int daysLeft = Restocker.DaysLeft(__instance, today);
+				string template = empty ? RestockRegenPlugin.NotifyText.Value : RestockRegenPlugin.NotifyLeftoversText.Value;
 				Send(peer, MessageHud.MessageType.Center, daysLeft > 0
-					? RestockRegenPlugin.NotifyText.Value.Replace("{days}", daysLeft == 1 ? "1 day" : $"{daysLeft} days")
+					? template.Replace("{days}", daysLeft == 1 ? "1 day" : $"{daysLeft} days")
 					: RestockRegenPlugin.NotifyDueText.Value);
 			}
 		}
