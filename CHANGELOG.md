@@ -13,6 +13,8 @@
 - New settings in `[MudPiles]`: `MudPiles`, `MudPileDays`, `MudPileDryRun`, `CryptRadius`,
   `MudPileNotifyText`, `MudPileEntranceText`, `MudPileDueText`, `VisitCheckSeconds` (30),
   `EntranceRadius` (30). Chests are unchanged.
+- Documentation: in-game days only pass on a dedicated server while a player is online, so all
+  the 30-day counts, chests included, are about 10 hours of play, not of server uptime.
 - This is the first feature that creates and removes world objects. A fault in it switches it off
   until the next restart and leaves chest restocking running.
 

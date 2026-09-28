@@ -9,8 +9,12 @@ is inside is replaced with a fresh roll from its own loot table.
 ## Status
 
 On world load the server logs a census of loot chests. After that it sweeps once per in-game day,
-which covers normal dawn, sleeping through the night, and a server running with nobody online. One
+which covers normal dawn and sleeping through the night. One
 sweep over a world of about 1.4 million objects takes well under a tenth of a second.
+
+In-game time on a dedicated server only moves while at least one player is online (vanilla
+`ZNet.UpdateNetTime`), so every count here is in played time: 30 in-game days is about 10 hours
+with someone on the server, not 10 hours of the server running.
 
 ## Rules
 
@@ -55,7 +59,7 @@ entrance does not count as a visit; only going inside does.
 | Setting | Default | What it does |
 | --- | --- | --- |
 | `Enabled` | `true` | Off leaves the plugin loaded and doing nothing. |
-| `Days` | `30` | In-game days from a chest's first opening (or being found empty) until it resets. A Valheim day is 20 real minutes. |
+| `Days` | `30` | In-game days from a chest's first opening (or being found empty) until it resets. A Valheim day is 20 minutes of played time. |
 | `Verbose` | `false` | Log one line per chest prefab and per restocked chest. |
 | `DryRun` | `false` | Count and log what would happen, but write nothing to the world. |
 | `Notify` | `true` | Tell a player on screen when the loot chest they opened is empty, and when it restocks. |

@@ -15,7 +15,8 @@ namespace RestockRegen
 		whether they are empty, and roll a fresh set of items without any client code.
 
 		On world load it logs a census of loot chests. After that it sweeps once per in-game day
-		(see Restocker), which covers dawn, sleep skips and a server running with nobody online.
+		(see Restocker), which covers dawn and sleep skips. A dedicated server's world time only moves
+		while a player is online (ZNet.UpdateNetTime), so every count of days is in played time.
 	*/
 	[BepInPlugin(Guid, Name, Version)]
 	public class RestockRegenPlugin : BaseUnityPlugin
@@ -64,7 +65,7 @@ namespace RestockRegen
 			Enabled = Config.Bind("General", "Enabled", true,
 				"Off leaves the plugin loaded and doing nothing.");
 			Days = Config.Bind("General", "Days", 30,
-				"In-game days an empty loot chest must stay empty before it refills. A Valheim day is 20 real minutes of running world, so 30 days is about 10 hours.");
+				"In-game days an empty loot chest must stay empty before it refills. A Valheim day is 20 minutes, and on a dedicated server time only moves while someone is online, so 30 days is about 10 hours of play.");
 			Verbose = Config.Bind("General", "Verbose", false,
 				"Log one line per chest prefab and per restocked chest.");
 			DryRun = Config.Bind("General", "DryRun", false,
