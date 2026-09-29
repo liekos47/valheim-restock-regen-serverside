@@ -14,6 +14,7 @@ namespace RestockRegen
 			/kick restock-status
 			/kick restock-reload                  (also /kick reload-restock-regen)
 			/kick restock-regen
+			/kick restock-regen-armor
 			/kick restock-get:MudPileDays
 			/kick restock-set:MudPileDays=20
 
@@ -90,6 +91,11 @@ namespace RestockRegen
 			{
 				return new[] { RestockRegenPlugin.Instance.Status() };
 			}
+			if (lower == "regen-armor")
+			{
+				RestockRegenPlugin.Instance.RegenArmorNow();
+				return new[] { "RestockRegen: restoring every mined ancient armor piece with nobody near and no build on it, now (details in the server log)" };
+			}
 			if (lower == "regen")
 			{
 				RestockRegenPlugin.Instance.RegenCryptsNow();
@@ -116,7 +122,7 @@ namespace RestockRegen
 			var help = new[]
 			{
 				"RestockRegen commands (in chat: /kick <command>, in the F5 console: kick <command>):",
-				"  restock-status   restock-regen   restock-reload   restock-get:Setting   restock-set:Setting=value",
+				"  restock-status   restock-regen   restock-regen-armor   restock-reload   restock-get:Setting   restock-set:Setting=value",
 				"  In text settings type _ for a space. Settings: " + string.Join(", ", RestockRegenPlugin.Instance.Config.Keys.Select(k => k.Key)),
 			};
 			return help;

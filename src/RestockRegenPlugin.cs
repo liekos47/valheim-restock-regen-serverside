@@ -24,7 +24,7 @@ namespace RestockRegen
 		// Working name; the final name is still to be chosen. Changing Guid renames the config file.
 		public const string Guid = "liekos47.restockregen";
 		public const string Name = "RestockRegen";
-		public const string Version = "0.8.0";
+		public const string Version = "0.9.0";
 
 		internal static ManualLogSource Log;
 		internal static RestockRegenPlugin Instance;
@@ -41,6 +41,13 @@ namespace RestockRegen
 		internal static ConfigEntry<bool> ResetOpened;
 		internal static ConfigEntry<bool> RestockLoaded;
 		internal static ConfigEntry<bool> MudPileRegenNow;
+		internal static ConfigEntry<bool> AncientArmor;
+		internal static ConfigEntry<int> AncientArmorDays;
+		internal static ConfigEntry<bool> AncientArmorDryRun;
+		internal static ConfigEntry<float> AncientArmorVisitRadius;
+		internal static ConfigEntry<float> AncientArmorBuildClearance;
+		internal static ConfigEntry<string> AncientArmorNotifyText;
+		internal static ConfigEntry<float> AncientArmorNotifyCooldown;
 		internal static ConfigEntry<bool> MudPiles;
 		internal static ConfigEntry<int> MudPileDays;
 		internal static ConfigEntry<bool> MudPileDryRun;
@@ -57,6 +64,7 @@ namespace RestockRegen
 		private Harmony harmony;
 		private bool censusDone;
 		private bool mudFailed;
+		private bool armorFailed;
 		private float nextMudTick;
 		private int lastSweepDay = -1;
 		private float nextCheck;
@@ -134,6 +142,23 @@ namespace RestockRegen
 			// A Harmony id of its own per load. On a hot reload (ScriptEngine) the new copy is
 			// patched before the old copy is destroyed, and the old copy's UnpatchSelf would also
 			// remove the new copy's patches if they shared an id.
+			AncientArmor = Config.Bind("AncientArmor", "AncientArmor", true,
+				"Restore ancient armor (the giant's helmets and swords in the Mistlands) where no player has been for AncientArmorDays in-game days. " +
+				"Only pieces the mod has seen, whole or partly mined, can come back.");
+			AncientArmorDays = Config.Bind("AncientArmor", "AncientArmorDays", 30,
+				"In-game days with no player within AncientArmorVisitRadius before a mined piece comes back. Any visit starts the count again.");
+			AncientArmorDryRun = Config.Bind("AncientArmor", "AncientArmorDryRun", false,
+				"Log which pieces would come back, but create and remove nothing. Spots and visits are still recorded.");
+			AncientArmorVisitRadius = Config.Bind("AncientArmor", "AncientArmorVisitRadius", 100f,
+				"Metres. A player this close to a piece's spot counts as a visit, and no piece is restored with a player this close.");
+			AncientArmorBuildClearance = Config.Bind("AncientArmor", "AncientArmorBuildClearance", 8f,
+				"Metres, measured flat. A piece is not restored if anything a player built stands this close to its spot. 0 turns the check off.");
+			AncientArmorNotifyText = Config.Bind("AncientArmor", "AncientArmorNotifyText",
+				"The spirits will restore ancient armor after {days} without visitors",
+				"Shown to a player entering the Mistlands (needs Notify on). {days} is AncientArmorDays.");
+			AncientArmorNotifyCooldown = Config.Bind("AncientArmor", "AncientArmorNotifyCooldown", 10f,
+				"Minutes. A player is told at most once in this long, so walking along the Mistlands border does not repeat it.");
+
 			harmony = new Harmony($"{Guid}.{DateTime.Now.Ticks}");
 			harmony.PatchAll();
 			Log.LogInfo($"{Name} {Version} loaded");
@@ -159,6 +184,8 @@ namespace RestockRegen
 					censusDone = true;
 					LootChests.Census();
 					RunMud(() => RestockRegen.MudPiles.Init());
+					int startDay = EnvMan.instance.GetDay();
+					RunArmor(() => RestockRegen.AncientArmor.Init(startDay));
 				}
 				History.Flush();
 				int today = EnvMan.instance.GetDay();
@@ -166,12 +193,24 @@ namespace RestockRegen
 				{
 					nextMudTick = Time.time + Mathf.Max(5, VisitCheckSeconds.Value);
 					RunMud(() => RestockRegen.MudPiles.Tick(today));
+					RunArmor(() => RestockRegen.AncientArmor.Tick(today));
 				}
 				if (today == lastSweepDay)
 				{
 					return;
 				}
 				lastSweepDay = today;
+				RunArmor(() =>
+				{
+					var armorWatch = System.Diagnostics.Stopwatch.StartNew();
+					RestockRegen.AncientArmor.Result a = RestockRegen.AncientArmor.Sweep(today);
+					if (AncientArmor.Value)
+					{
+						Log.LogInfo($"day {today} ancient armor{(AncientArmorDryRun.Value ? " (dry run)" : "")}: {a.Missing} mined, " +
+							$"{a.Replaced + a.Refilled} restored ({a.Replaced} replacing broken remains, {a.Refilled} mined out), {a.Waiting} waiting, " +
+							$"{a.Near} skipped with a player near, {a.Built} blocked by a build, {armorWatch.ElapsedMilliseconds} ms");
+					}
+				});
 				RunMud(() =>
 				{
 					var mudWatch = System.Diagnostics.Stopwatch.StartNew();
@@ -215,6 +254,39 @@ namespace RestockRegen
 			}
 		}
 
+		private void RunArmor(Action action)
+		{
+			if (armorFailed)
+			{
+				return;
+			}
+			try
+			{
+				action();
+			}
+			catch (Exception e)
+			{
+				armorFailed = true;
+				Log.LogError($"ancient armor failed and is off until restart: {e}");
+			}
+		}
+
+		// "restock-regen-armor": every mined piece that is free, now, whatever its clock.
+		internal void RegenArmorNow()
+		{
+			if (!WorldReady())
+			{
+				return;
+			}
+			int today = EnvMan.instance.GetDay();
+			RunArmor(() =>
+			{
+				RestockRegen.AncientArmor.Result a = RestockRegen.AncientArmor.Sweep(today, now: true);
+				Log.LogInfo($"armor regen now{(AncientArmorDryRun.Value ? " (dry run)" : "")}: {a.Replaced + a.Refilled} restored, " +
+					$"{a.Near} with a player near, {a.Built} blocked by a build");
+			});
+		}
+
 		// Server only, and only once the world's objects and the prefab registry both exist.
 		internal static bool WorldReady()
 		{
@@ -237,6 +309,7 @@ namespace RestockRegen
 				{
 					History.Flush();
 					RestockRegen.MudPiles.FlushPending();
+					RestockRegen.AncientArmor.Save();
 				}
 			}
 			catch (Exception e)
@@ -282,7 +355,9 @@ namespace RestockRegen
 		{
 			int today = EnvMan.instance != null ? EnvMan.instance.GetDay() : 0;
 			return $"RestockRegen {Version}, day {today}: {LootChests.Prefabs.Count} loot chest kinds; " +
-				RestockRegen.MudPiles.Summary() + (mudFailed ? " (mud piles off after an error)" : "") +
+				RestockRegen.MudPiles.Summary() + (mudFailed ? " (mud piles off after an error)" : "") + "; " +
+				RestockRegen.AncientArmor.Summary() + (armorFailed ? " (off after an error)" : "") +
+				(AncientArmorDryRun.Value ? "; ancient armor DRY RUN" : "") +
 				(DryRun.Value ? "; chests DRY RUN" : "") + (MudPileDryRun.Value ? "; mud piles DRY RUN" : "");
 		}
 	}

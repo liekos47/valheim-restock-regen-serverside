@@ -94,3 +94,11 @@ Terminal.InitTerminal
 Chat.InputText
 Chat.CheckPermissionsAndSendChatMessageRPCsAsync
 field:ZNet.m_adminList
+# 0.9.0 ancient armor
+WorldGenerator.GetBiome
+ZoneSystem.GetZonePos
+SaveSystem.GetWorldsSaveRootPath
+ZNet.GetWorldName
+field:ZNet.m_world
+field:World.m_fileSource
+field:WorldGenerator.m_instance

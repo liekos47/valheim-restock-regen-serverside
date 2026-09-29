@@ -1,3 +1,18 @@
+## 0.9.0
+
+- Ancient armor in the Mistlands comes back. A mined giant helmet or sword (`giant_helmet1/2`,
+  `giant_sword1/2`) is restored once no player has been within 100 m of it for 30 in-game days,
+  and never where anything a player built stands within 8 m of the spot. Spots are remembered from
+  the first time the mod sees a piece, and kept with the area visits in
+  `worlds_local/<world>.restockregen.txt` beside the world save.
+- Entering the Mistlands shows "The spirits will restore ancient armor after 30 days without
+  visitors", at most once every 10 minutes per player.
+- `/kick restock-regen-armor` restores every free mined piece now.
+- New `[AncientArmor]` settings: `AncientArmor`, `AncientArmorDays`, `AncientArmorDryRun`,
+  `AncientArmorVisitRadius`, `AncientArmorBuildClearance`, `AncientArmorNotifyText`,
+  `AncientArmorNotifyCooldown`.
+- README rewritten as a full guide, with a detailed admin command section.
+
 ## 0.8.0
 
 - Admin commands, typed in the chat box as `/kick restock-<command>` (or `kick restock-<command>`
