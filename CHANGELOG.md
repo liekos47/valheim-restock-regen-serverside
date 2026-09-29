@@ -1,3 +1,15 @@
+## 0.10.0
+
+- Obsidian deposits and dragon eggs in the Mountains come back like ancient armor: once no player
+  has been within 100 m for 30 in-game days, and never where a player has built within 8 m. A
+  partly mined deposit is replaced by a whole one; a mined-out deposit or a taken egg is put back.
+  Each has its own settings (`[Obsidian]`, `[DragonEgg]`). Restoring eggs makes Moder repeatable.
+- Entering the Mountains shows "The spirits will restore obsidian and dragon eggs after 30 days
+  without visitors" (`[Mountains]` settings).
+- `/kick restock-regen-obsidian` and `/kick restock-regen-eggs`.
+- The ancient armor code became a shared "regrow" module for all three kinds. Settings and the
+  record file are unchanged.
+
 ## 0.9.1
 
 - Fixed ancient armor records counting a piece twice. Positions were written to the record file

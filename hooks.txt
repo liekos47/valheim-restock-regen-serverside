@@ -102,3 +102,10 @@ ZNet.GetWorldName
 field:ZNet.m_world
 field:World.m_fileSource
 field:WorldGenerator.m_instance
+# 0.10.0 regrow: obsidian and dragon eggs
+Pickable.RPC_Pick
+Pickable.Awake
+MineRock5.LoadHealth
+MineRock5.SaveHealth
+field:Pickable.m_respawnTimeMinutes
+field:ZDOVars.s_health

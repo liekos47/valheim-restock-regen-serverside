@@ -5,8 +5,8 @@ over time:
 
 - **Loot chests** refill 30 in-game days after they are first opened.
 - **Muddy scrap piles** in sunken crypts come back after a crypt has gone 30 days without visitors.
-- **Ancient armor** (the giant's helmets and swords in the Mistlands) comes back where nobody has
-  been for 30 days.
+- **Ancient armor** (the giant's helmets and swords in the Mistlands), **obsidian** and **dragon
+  eggs** (Mountains) come back where nobody has been for 30 days.
 
 **Server-side only.** Install it on the dedicated server. Players install nothing, and everything
 they see arrives through the game's own messages.
@@ -20,7 +20,7 @@ they see arrives through the game's own messages.
 - [What players see](#what-players-see)
 - [Loot chests](#loot-chests)
 - [Muddy scrap piles](#muddy-scrap-piles)
-- [Ancient armor](#ancient-armor)
+- [Ancient armor, obsidian and dragon eggs](#ancient-armor-obsidian-and-dragon-eggs)
 - [Admin commands](#admin-commands)
 - [Settings](#settings)
 - [Hot reload](#hot-reload)
@@ -38,6 +38,7 @@ they see arrives through the game's own messages.
 | Arriving at the entrance of a sunken crypt with mined piles | Middle of the screen | The spirits will restore muddy scrap piles in 12 days if no one enters |
 | Going inside that crypt | Middle of the screen | The spirits will restore muddy scrap piles after 30 days without visitors |
 | Entering the Mistlands | Middle of the screen | The spirits will restore ancient armor after 30 days without visitors |
+| Entering the Mountains | Middle of the screen | The spirits will restore obsidian and dragon eggs after 30 days without visitors |
 
 ## Loot chests
 
@@ -67,17 +68,25 @@ they see arrives through the game's own messages.
   back.
 - A crypt with a player in it, or next to it, waits until they leave.
 
-## Ancient armor
+## Ancient armor, obsidian and dragon eggs
 
-- The giant's helmets and swords in the Mistlands (`giant_helmet1`, `giant_helmet2`,
-  `giant_sword1`, `giant_sword2`).
-- A mined piece comes back once no player has been within 100 m of it for 30 in-game days. Any
-  visit starts the count again for that area.
-- **A piece is never put back where a player has built.** If anything a player built stands within
-  8 m of the spot, the piece stays gone and the spot is checked again every day.
-- Like mud piles, a piece is remembered from the first time the mod sees it, whole or partly mined.
-  Pieces mined out completely before the mod was installed cannot come back.
-- Players entering the Mistlands are told about it, at most once every 10 minutes.
+Three kinds of world object that work the same way, each with its own settings:
+
+| Kind | Where | Objects |
+| --- | --- | --- |
+| Ancient armor | Mistlands | The giant's helmets and swords (`giant_helmet1`, `giant_helmet2`, `giant_sword1`, `giant_sword2`) |
+| Obsidian | Mountains | Obsidian deposits (`MineRock_Obsidian`) |
+| Dragon eggs | Mountains | The eggs on the dragon nests (`Pickable_DragonEgg`) |
+
+- A partly mined or missing object comes back once no player has been within 100 m of its spot for
+  30 in-game days. Any visit starts the count again for that area.
+- **Nothing is put back where a player has built.** If anything a player built stands within 8 m of
+  the spot, it stays gone and the spot is checked again every day.
+- An object is remembered from the first time the mod sees it, whole or damaged. Objects mined out
+  or taken before the mod was installed cannot come back.
+- Players entering the Mistlands or the Mountains are told about it, at most once every 10 minutes.
+- **Dragon eggs make Moder repeatable:** with eggs coming back, players can summon her again. Set
+  `DragonEgg` to false if you would rather she stays a one-time fight.
 
 ## Admin commands
 
@@ -108,6 +117,8 @@ single word with no spaces.
 | `/kick restock-set:Setting=value` | Changes a setting and saves it to the config file. It takes effect straight away. Examples below. |
 | `/kick restock-regen` | Regenerates every sunken crypt with mined piles **now**, whatever its clock. A crypt with a player in or near it is done at the next daily check that finds it free. |
 | `/kick restock-regen-armor` | Restores every mined ancient armor piece **now**, whatever its clock, except where a player is near or has built. |
+| `/kick restock-regen-obsidian` | The same for obsidian deposits. |
+| `/kick restock-regen-eggs` | The same for dragon eggs. |
 | `/kick restock-reload` | Reloads the mod from `BepInEx/scripts` without restarting the server ([hot reload](#hot-reload)). `/kick reload-restock-regen` does the same. |
 
 ### Changing settings with restock-set
@@ -192,6 +203,33 @@ every 30 seconds, and can also be changed in game with `/kick restock-set`.
 | `AncientArmorNotifyText` | `The spirits will restore ancient armor after {days} without visitors` | Shown on entering the Mistlands. |
 | `AncientArmorNotifyCooldown` | `10` | Minutes. A player is told at most once in this long. |
 
+### Obsidian
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `Obsidian` | `true` | Restore obsidian deposits in the Mountains. |
+| `ObsidianDays` | `30` | In-game days with no player within `ObsidianVisitRadius` before a deposit comes back. |
+| `ObsidianDryRun` | `false` | Log which deposits would come back, change nothing. |
+| `ObsidianVisitRadius` | `100` | Metres. A player this close counts as a visit, and nothing is restored with a player this close. |
+| `ObsidianBuildClearance` | `8` | Metres. No deposit is restored if anything a player built is this close. `0` turns the check off. |
+
+### DragonEgg
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `DragonEgg` | `true` | Restore dragon eggs on the nests. This makes Moder repeatable. |
+| `DragonEggDays` | `30` | In-game days with no player within `DragonEggVisitRadius` before an egg comes back. |
+| `DragonEggDryRun` | `false` | Log which eggs would come back, change nothing. |
+| `DragonEggVisitRadius` | `100` | Metres. A player this close counts as a visit, and nothing is restored with a player this close. |
+| `DragonEggBuildClearance` | `8` | Metres. No egg is restored if anything a player built is this close. `0` turns the check off. |
+
+### Mountains
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `MountainsNotifyText` | `The spirits will restore obsidian and dragon eggs after {days} without visitors` | Shown on entering the Mountains while `Obsidian` or `DragonEgg` is on. `{days}` is `ObsidianDays`. |
+| `MountainsNotifyCooldown` | `10` | Minutes. A player is told at most once in this long. |
+
 ## Hot reload
 
 A new version of the mod can be loaded without restarting the server, using
@@ -219,8 +257,8 @@ dedicated server. Put `RestockRegen.dll` in `BepInEx/plugins/`, or in `BepInEx/s
   `restockregen_firstday`, `restockregen_lastby`, `restockregen_lastday`).
 - On each sunken crypt: its pile spots (`restockregen_mudspots`) and last visit
   (`restockregen_lastvisit`).
-- Beside the world save: `worlds_local/<world>.restockregen.txt`, the ancient armor spots and
-  when each area was last visited. Keep it with the world when you back it up or move it.
+- Beside the world save: `worlds_local/<world>.restockregen.txt`, the ancient armor, obsidian and
+  dragon egg spots, and when each area was last visited. Keep it with the world when you back it up or move it.
 
 Removing the mod leaves these behind, and the game ignores them.
 
