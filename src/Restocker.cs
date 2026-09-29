@@ -20,12 +20,15 @@ namespace RestockRegen
 		clearing is a plain Set that bumps the data revision. ZDO.RemoveInt would not bump it, so a
 		client holding an older copy could hand the stale stamp back later.
 
-		A chest that a player has loaded is skipped entirely. The server gives ownership of an
-		object to the first player whose active area covers it and takes it back when they leave
-		(ZDOMan.ReleaseNearbyZDOS), so an owner other than the server means a client holds a live
-		copy that could overwrite our write. Skipped chests keep their state and are retried at
-		the next sweep, so a chest that is due does not lose its turn, only waits for the player
-		to leave.
+		A chest a player has loaded (the server hands ownership of an object to a player whose
+		active area covers it, ZDOMan.ReleaseNearbyZDOS) is still processed with RestockLoaded, the
+		default, unless someone has it open (ZDOVars.s_inUse). Chests near a base are loaded almost
+		all the time, and would otherwise never restock. The write is safe while it is closed: the
+		owner's Container only writes the chest's items when its own inventory changes, which needs
+		the chest open, so the server's newer revision simply reaches the owner as an update and
+		Container.CheckForChanges loads it. The danger - the server dropping the owner's next change
+		because its own revision is ahead (ZDOMan.RPC_ZDOData) - only exists while the chest is in
+		use. An open chest is skipped and retried at the next sweep, so it waits but keeps its turn.
 	*/
 	internal static class Restocker
 	{
@@ -72,7 +75,7 @@ namespace RestockRegen
 
 		internal struct Result
 		{
-			public int Chests, Stamped, Cleared, Restocked, Waiting, Loaded, RolledNothing;
+			public int Chests, Stamped, Cleared, Restocked, Waiting, Loaded, Forced, RolledNothing;
 		}
 
 		internal static Result Sweep(int today, bool dryRun, bool verbose)
@@ -99,8 +102,12 @@ namespace RestockRegen
 				}
 				if (zdo.HasOwner() && zdo.GetOwner() != server)
 				{
-					result.Loaded++;
-					continue;
+					if (!RestockRegenPlugin.RestockLoaded.Value || zdo.GetInt(ZDOVars.s_inUse) == 1)
+					{
+						result.Loaded++;
+						continue;
+					}
+					result.Forced++;
 				}
 
 				int stamp = GetStamp(zdo, dryRun);

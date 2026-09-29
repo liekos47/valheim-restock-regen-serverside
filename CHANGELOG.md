@@ -1,3 +1,15 @@
+## 0.7.0
+
+- Chests near a base restock too. A chest a player has loaded used to wait until nobody was near,
+  so chests close to a base, loaded almost all the time, never came back (33-38 of them a day on
+  the owner's server). Now they are restocked while loaded, as long as nobody has the chest open.
+  `RestockLoaded` (on) controls it.
+- `MudPileRegenNow`: a one-shot switch that regenerates every sunken crypt with mined piles at the
+  next daily sweep, whatever its clock, then turns itself off. A crypt someone is in at that moment
+  is done as soon as it is free.
+- Mud pile regeneration went live on the owner's server with 30 days, after a dry run in which
+  47-50 crypts a day came up due with a 1-day test setting.
+
 ## 0.6.0
 
 - Muddy scrap piles in sunken crypts regenerate. A sunken crypt that no player has visited for

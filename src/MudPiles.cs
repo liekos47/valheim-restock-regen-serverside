@@ -378,6 +378,8 @@ namespace RestockRegen
 				return result;
 			}
 			bool dryRun = RestockRegenPlugin.MudPileDryRun.Value;
+			// One-shot: every crypt with mined piles regenerates at this sweep, whatever its clock.
+			bool now = RestockRegenPlugin.MudPileRegenNow.Value;
 			bool verbose = RestockRegenPlugin.Verbose.Value;
 			int days = Mathf.Max(1, RestockRegenPlugin.MudPileDays.Value);
 			long server = ZDOMan.GetSessionID();
@@ -415,14 +417,14 @@ namespace RestockRegen
 			foreach (Crypt crypt in s_crypts.Values)
 			{
 				result.Crypts++;
-				if (crypt.LastVisit < 0)
+				if (crypt.LastVisit < 0 && !now)
 				{
 					crypt.LastVisit = today; // first sight: start the clock now, not at day 0
 					crypt.VisitDirty = true;
 					continue;
 				}
-				int unvisited = today - crypt.LastVisit;
-				if (unvisited < days)
+				int unvisited = crypt.LastVisit < 0 ? days : today - crypt.LastVisit;
+				if (unvisited < days && !now)
 				{
 					result.Waiting++;
 					continue;
@@ -435,6 +437,13 @@ namespace RestockRegen
 				if (Occupied(crypt, standing, server))
 				{
 					result.Occupied++;
+					if (now)
+					{
+						// Regenerate-now could not reach it: make it due, so the first sweep that
+						// finds it free does it, unless someone visits in between.
+						crypt.LastVisit = today - days;
+						crypt.VisitDirty = true;
+					}
 					continue;
 				}
 				int replaced = 0, rebuilt = 0;
@@ -467,11 +476,16 @@ namespace RestockRegen
 				{
 					RestockRegenPlugin.Log.LogInfo(
 						$"{(dryRun ? "dry run: would regenerate" : "regenerated")} sunken crypt at ({crypt.Pos.x:0}, {crypt.Pos.z:0}) " +
-						$"after {unvisited} days unvisited: {replaced} partly mined piles replaced, {rebuilt} mined-out piles rebuilt, " +
+						(now ? "(regenerate now): " : $"after {unvisited} days unvisited: ") + $"{replaced} partly mined piles replaced, {rebuilt} mined-out piles rebuilt, " +
 						$"{crypt.Spots.Count - missing.Count} untouched");
 				}
 			}
 			Flush();
+			if (now && !dryRun)
+			{
+				RestockRegenPlugin.MudPileRegenNow.Value = false; // saved to the config file
+				RestockRegenPlugin.Log.LogInfo("mud piles: regenerate-now done, MudPileRegenNow set back to false");
+			}
 			return result;
 		}
 

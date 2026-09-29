@@ -32,7 +32,9 @@ with someone on the server, not 10 hours of the server running.
 - Each chest has its own clock. A player who
   opens an empty loot chest, or empties one, is told on screen how many days are left. Installing on
   an old world does not refill everything at once.
-- A chest that a player currently has loaded is skipped and tried again at the next day's sweep.
+- A chest near a player, even one next to a base that is loaded all the time, still restocks, as
+  long as nobody has it open at that moment. An open chest is tried again at the next day's sweep.
+  Set `RestockLoaded` to false to only restock chests nobody is near.
 - A chest that is destroyed (smashed or burnt) is gone from the world and cannot come back.
 
 ## Muddy scrap piles
@@ -79,6 +81,8 @@ entrance does not count as a visit; only going inside does.
 | `EntranceRadius` | `30` | Metres around a crypt's entrance where players on the surface get the message. |
 | `CryptRadius` | `200` | Metres from a crypt's generator that count as inside it. |
 | `MudPileNotifyText` | `The spirits will restore muddy scrap piles after {days} without visitors` | Shown on walking into a crypt with mined piles. |
+| `RestockLoaded` | `true` | Restock chests a player has loaded, if nobody has them open. |
+| `MudPileRegenNow` | `false` | One-shot: regenerate every crypt with mined piles at the next sweep, then switch back off. |
 | `Exclude` | Hildir's three quest chests | Comma-separated chest prefab names never to restock. Needs a restart. |
 
 The clock is stored on each chest as `restockregen_emptysince`, and the history as `restockregen_firstby`,

@@ -24,7 +24,7 @@ namespace RestockRegen
 		// Working name; the final name is still to be chosen. Changing Guid renames the config file.
 		public const string Guid = "liekos47.restockregen";
 		public const string Name = "RestockRegen";
-		public const string Version = "0.6.0";
+		public const string Version = "0.7.0";
 
 		internal static ManualLogSource Log;
 
@@ -38,6 +38,8 @@ namespace RestockRegen
 		internal static ConfigEntry<string> NotifyDueText;
 		internal static ConfigEntry<string> NotifyLeftoversText;
 		internal static ConfigEntry<bool> ResetOpened;
+		internal static ConfigEntry<bool> RestockLoaded;
+		internal static ConfigEntry<bool> MudPileRegenNow;
 		internal static ConfigEntry<bool> MudPiles;
 		internal static ConfigEntry<int> MudPileDays;
 		internal static ConfigEntry<bool> MudPileDryRun;
@@ -74,6 +76,9 @@ namespace RestockRegen
 			ResetOpened = Config.Bind("General", "ResetOpened", true,
 				"On: a loot chest resets Days after a player first opens it, even if items are left in it, and whatever is inside then is replaced by a fresh roll. " +
 				"Off: only chests that are completely empty are on a clock, and putting anything back in stops it.");
+			RestockLoaded = Config.Bind("General", "RestockLoaded", true,
+				"Restock a chest even while a player has its area loaded (a chest near a base, for example), as long as nobody has it open. " +
+				"Off: wait until no player is near it.");
 			Exclude = Config.Bind("General", "Exclude",
 				"TreasureChest_forestcrypt_hildir,TreasureChest_mountaincave_hildir,TreasureChest_plainsfortress_hildir",
 				"Comma-separated chest prefab names never to restock. The default is Hildir's three quest chests, " +
@@ -112,6 +117,9 @@ namespace RestockRegen
 			MudPileDueText = Config.Bind("MudPiles", "MudPileDueText",
 				"The spirits will restore muddy scrap piles at the next dawn if no one enters",
 				"Shown at the entrance when the crypt's time is already up. It regenerates at the next daily sweep with nobody nearby.");
+			MudPileRegenNow = Config.Bind("MudPiles", "MudPileRegenNow", false,
+				"One-shot: at the next daily sweep, every sunken crypt with mined piles regenerates whatever its clock says, then this sets itself back to false. " +
+				"A crypt with a player in or near it then is done at the first sweep that finds it free.");
 			VisitCheckSeconds = Config.Bind("MudPiles", "VisitCheckSeconds", 30,
 				"Real seconds between checks for players at or inside sunken crypts. A visit shorter than this can go unnoticed, " +
 				"and the message can arrive up to this long after a player gets there.");
@@ -174,7 +182,7 @@ namespace RestockRegen
 				Restocker.Result r = Restocker.Sweep(today, DryRun.Value, Verbose.Value);
 				Log.LogInfo($"day {today}{(DryRun.Value ? " (dry run)" : "")}: {r.Chests} loot chests, " +
 					$"{r.Restocked} restocked, {r.Stamped} clocks started, {r.Waiting} waiting, {r.Cleared} refilled by players, " +
-					$"{r.Loaded} skipped as loaded by a player" + (r.RolledNothing > 0 ? $", {r.RolledNothing} rolled nothing (retry next day)" : "") +
+					$"{r.Forced} checked while loaded, {r.Loaded} skipped as open or loaded" + (r.RolledNothing > 0 ? $", {r.RolledNothing} rolled nothing (retry next day)" : "") +
 					$", {watch.ElapsedMilliseconds} ms");
 			}
 			catch (Exception e)
