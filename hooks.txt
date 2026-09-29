@@ -84,3 +84,13 @@ field:ZNetView.m_type
 field:ZNetView.m_distant
 field:Destructible.m_spawnWhenDestroyed
 field:DungeonGenerator.m_themes
+# 0.8.0 admin commands (via the kick console command) and hot reload
+ZNet.RPC_Kick
+ZNet.Kick
+ZNet.RemotePrint
+ZNet.ListContainsId
+ZNet.GetPeer
+Terminal.InitTerminal
+Chat.InputText
+Chat.CheckPermissionsAndSendChatMessageRPCsAsync
+field:ZNet.m_adminList

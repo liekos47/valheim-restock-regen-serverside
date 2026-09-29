@@ -24,9 +24,10 @@ namespace RestockRegen
 		// Working name; the final name is still to be chosen. Changing Guid renames the config file.
 		public const string Guid = "liekos47.restockregen";
 		public const string Name = "RestockRegen";
-		public const string Version = "0.7.0";
+		public const string Version = "0.8.0";
 
 		internal static ManualLogSource Log;
+		internal static RestockRegenPlugin Instance;
 
 		internal static ConfigEntry<bool> Enabled;
 		internal static ConfigEntry<int> Days;
@@ -129,7 +130,11 @@ namespace RestockRegen
 			CryptRadius = Config.Bind("MudPiles", "CryptRadius", 200f,
 				"Metres, measured flat from a sunken crypt's generator, within which a player up at dungeon height counts as inside that crypt, and a pile belongs to it.");
 
-			harmony = new Harmony(Guid);
+			Instance = this;
+			// A Harmony id of its own per load. On a hot reload (ScriptEngine) the new copy is
+			// patched before the old copy is destroyed, and the old copy's UnpatchSelf would also
+			// remove the new copy's patches if they shared an id.
+			harmony = new Harmony($"{Guid}.{DateTime.Now.Ticks}");
 			harmony.PatchAll();
 			Log.LogInfo($"{Name} {Version} loaded");
 			InvokeRepeating(nameof(ReloadConfig), 30f, 30f);
@@ -225,7 +230,60 @@ namespace RestockRegen
 
 		private void OnDestroy()
 		{
+			// Hot reload or shutdown: write what can safely be written before this copy goes.
+			try
+			{
+				if (WorldReady())
+				{
+					History.Flush();
+					RestockRegen.MudPiles.FlushPending();
+				}
+			}
+			catch (Exception e)
+			{
+				Log.LogWarning($"flush on unload failed: {e.Message}");
+			}
 			harmony?.UnpatchSelf();
+			if (Instance == this)
+			{
+				Instance = null;
+			}
+		}
+
+		// "!restock reload": ScriptEngine reloads every plugin in BepInEx/scripts, this one included.
+		internal void HotReload()
+		{
+			Log.LogInfo($"{Name} {Version}: hot reload requested");
+			if (!AdminCommands.Reload())
+			{
+				Log.LogWarning("hot reload failed: ScriptEngine not found");
+			}
+		}
+
+		// "!restock regen": every free sunken crypt with mined piles, now rather than at the next sweep.
+		internal void RegenCryptsNow()
+		{
+			if (!WorldReady())
+			{
+				return;
+			}
+			MudPileRegenNow.Value = true;
+			int today = EnvMan.instance.GetDay();
+			RunMud(() =>
+			{
+				RestockRegen.MudPiles.Result m = RestockRegen.MudPiles.Sweep(today);
+				Log.LogInfo($"regen now{(MudPileDryRun.Value ? " (dry run)" : "")}: {m.Regenerated} crypts regenerated " +
+					$"({m.Replaced} partly mined piles replaced, {m.Rebuilt} rebuilt), {m.Occupied} occupied, done when free");
+			});
+		}
+
+		// "!restock status"
+		internal string Status()
+		{
+			int today = EnvMan.instance != null ? EnvMan.instance.GetDay() : 0;
+			return $"RestockRegen {Version}, day {today}: {LootChests.Prefabs.Count} loot chest kinds; " +
+				RestockRegen.MudPiles.Summary() + (mudFailed ? " (mud piles off after an error)" : "") +
+				(DryRun.Value ? "; chests DRY RUN" : "") + (MudPileDryRun.Value ? "; mud piles DRY RUN" : "");
 		}
 	}
 }

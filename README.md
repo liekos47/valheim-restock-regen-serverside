@@ -54,6 +54,34 @@ piles after 30 days without visitors". Players are
 checked every 30 seconds, so the message can take up to half a minute to appear. Standing at the
 entrance does not count as a visit; only going inside does.
 
+## Admin commands
+
+A server-only mod cannot add its own console or chat commands, so these ride on Valheim's `kick`
+command, which is the one console command that sends its text to the server. Type them in the chat
+box with a slash, or in the F5 console without one. Only players in the server's `adminlist.txt`
+can use them; the answer appears in your console and at the top left. A normal kick still works.
+
+| Command | What it does |
+| --- | --- |
+| `/kick restock-help` | Lists the commands and every setting name. |
+| `/kick restock-status` | Version, day, and what the mod is tracking. |
+| `/kick restock-regen` | Regenerates every sunken crypt with mined piles now (not ones a player is in). |
+| `/kick restock-reload` | Reloads the mod from `BepInEx/scripts` (hot reload, see below). |
+| `/kick restock-get:MudPileDays` | Shows a setting. |
+| `/kick restock-set:MudPileDays=20` | Changes a setting and saves it. In text settings type `_` for a space. |
+
+Only the first word after `kick` reaches the server, which is why the commands are one word.
+
+## Hot reload
+
+With [ScriptEngine](https://github.com/BepInEx/BepInEx.Debug) installed and `RestockRegen.dll` in
+`BepInEx/scripts` instead of `BepInEx/plugins` (ScriptEngine settings `LoadOnStart = true` and,
+for automatic reloads, `EnableFileSystemWatcher = true`), a new version loads without a restart:
+replace the DLL, or use `/kick restock-reload`. Settings never needed a restart; the file is read
+again every 30 seconds. Every reload leaves the old copy in memory, a few tens of kilobytes, so
+restart now and then. Take a backup of the world before loading a new version: no restart also
+means no save and backup on the way.
+
 ## Configuration
 
 `BepInEx/config/liekos47.restockregen.cfg`, written on first run. The file is re-read every 30 seconds.

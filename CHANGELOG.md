@@ -1,3 +1,15 @@
+## 0.8.0
+
+- Admin commands, typed in the chat box as `/kick restock-<command>` (or `kick restock-<command>`
+  in the F5 console): `restock-help`, `restock-status`, `restock-reload`, `restock-regen`,
+  `restock-get:Setting`, `restock-set:Setting=value`. They ride on Valheim's own kick command,
+  the one console command that reaches the server with its text, and are answered in the admin's
+  console and top-left. The server checks adminlist.txt; a real kick is unaffected.
+- Hot reload with BepInEx ScriptEngine: with RestockRegen in `BepInEx/scripts`, replacing the DLL
+  or `restock-reload` loads the new version without a server restart.
+- Each load patches under its own Harmony id, so an unloading copy cannot remove the new copy's
+  patches, and pending records are written out on unload.
+
 ## 0.7.0
 
 - Chests near a base restock too. A chest a player has loaded used to wait until nobody was near,

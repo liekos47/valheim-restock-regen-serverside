@@ -324,6 +324,23 @@ namespace RestockRegen
 			}
 		}
 
+		internal static void FlushPending()
+		{
+			if (s_ready)
+			{
+				Flush();
+			}
+		}
+
+		internal static string Summary()
+		{
+			if (!s_ready)
+			{
+				return "mud piles not started";
+			}
+			return $"{s_crypts.Count} sunken crypts, {s_crypts.Values.Sum(c => c.Spots.Count)} pile spots known";
+		}
+
 		private static void Flush()
 		{
 			if (RestockRegenPlugin.MudPileDryRun.Value)
