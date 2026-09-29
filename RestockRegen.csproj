@@ -8,6 +8,8 @@
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <Deterministic>true</Deterministic>
+    <!-- ScriptEngine (hot reload) reads symbols when it loads a plugin; embedded, the DLL is the only file to ship. -->
+    <DebugType>embedded</DebugType>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>

@@ -12,6 +12,8 @@
   `AncientArmorVisitRadius`, `AncientArmorBuildClearance`, `AncientArmorNotifyText`,
   `AncientArmorNotifyCooldown`.
 - README rewritten as a full guide, with a detailed admin command section.
+- The DLL carries its debug symbols inside it. ScriptEngine reads symbols when it loads a plugin, and
+  refused the first 0.9.0 build, which had them in a separate file.
 
 ## 0.8.0
 
