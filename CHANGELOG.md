@@ -1,3 +1,11 @@
+## 0.9.1
+
+- Fixed ancient armor records counting a piece twice. Positions were written to the record file
+  with too few decimals, so a piece on a rounding edge read back as a separate spot that looked
+  mined out, and would have been doubled once due. Positions are now written in full, matched with
+  a 20 cm tolerance, and duplicates an older build wrote are dropped when the file is read. Found in
+  dry run on the live server, before anything was restored.
+
 ## 0.9.0
 
 - Ancient armor in the Mistlands comes back. A mined giant helmet or sword (`giant_helmet1/2`,

@@ -24,7 +24,7 @@ namespace RestockRegen
 		// Working name; the final name is still to be chosen. Changing Guid renames the config file.
 		public const string Guid = "liekos47.restockregen";
 		public const string Name = "RestockRegen";
-		public const string Version = "0.9.0";
+		public const string Version = "0.9.1";
 
 		internal static ManualLogSource Log;
 		internal static RestockRegenPlugin Instance;

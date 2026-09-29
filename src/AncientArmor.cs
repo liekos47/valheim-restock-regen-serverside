@@ -57,6 +57,33 @@ namespace RestockRegen
 		private static (int, int, int) Key(Vector3 p) =>
 			(Mathf.RoundToInt(p.x * 10f), Mathf.RoundToInt(p.y * 10f), Mathf.RoundToInt(p.z * 10f));
 
+		// The key of the remembered spot at this position, allowing for rounding: a position read
+		// back from the record file can land in the neighbouring 10 cm cell of the key the live
+		// object gives. Without this a piece would be counted twice and, once due, doubled.
+		private static (int, int, int)? SpotKeyAt(Vector3 p)
+		{
+			var k = Key(p);
+			if (s_spots.ContainsKey(k))
+			{
+				return k;
+			}
+			for (int dx = -2; dx <= 2; dx++)
+			{
+				for (int dy = -2; dy <= 2; dy++)
+				{
+					for (int dz = -2; dz <= 2; dz++)
+					{
+						var n = (k.Item1 + dx, k.Item2 + dy, k.Item3 + dz);
+						if (s_spots.TryGetValue(n, out Spot s) && (s.Pos - p).sqrMagnitude < 0.04f)
+						{
+							return n;
+						}
+					}
+				}
+			}
+			return null;
+		}
+
 		private static Vector2i Zone(Vector3 p)
 		{
 			Vector2s z = ZoneSystem.GetZone(p);
@@ -114,12 +141,11 @@ namespace RestockRegen
 
 		private static void Remember(ZDO zdo)
 		{
-			var key = Key(zdo.GetPosition());
-			if (s_spots.ContainsKey(key))
+			if (SpotKeyAt(zdo.GetPosition()) != null)
 			{
 				return;
 			}
-			s_spots[key] = new Spot { Prefab = s_intactOf[zdo.GetPrefab()], Pos = zdo.GetPosition(), Rot = zdo.GetRotation().eulerAngles };
+			s_spots[Key(zdo.GetPosition())] = new Spot { Prefab = s_intactOf[zdo.GetPrefab()], Pos = zdo.GetPosition(), Rot = zdo.GetRotation().eulerAngles };
 			Vector2i zone = Zone(zdo.GetPosition());
 			if (!s_zoneVisit.ContainsKey(zone) && EnvMan.instance != null)
 			{
@@ -227,7 +253,7 @@ namespace RestockRegen
 				if (s_intactOf.ContainsKey(zdo.GetPrefab()))
 				{
 					Remember(zdo);
-					var key = Key(zdo.GetPosition());
+					var key = SpotKeyAt(zdo.GetPosition()) ?? Key(zdo.GetPosition());
 					if (!standing.TryGetValue(key, out ZDO other) || !s_intact.Contains(other.GetPrefab()))
 					{
 						standing[key] = zdo;
@@ -338,7 +364,14 @@ namespace RestockRegen
 							Pos = new Vector3(float.Parse(f[2], inv), float.Parse(f[3], inv), float.Parse(f[4], inv)),
 							Rot = new Vector3(float.Parse(f[5], inv), float.Parse(f[6], inv), float.Parse(f[7], inv)),
 						};
-						s_spots[Key(spot.Pos)] = spot;
+						if (SpotKeyAt(spot.Pos) == null) // drops duplicates an older build wrote
+						{
+							s_spots[Key(spot.Pos)] = spot;
+						}
+						else
+						{
+							s_dirty = true;
+						}
 					}
 					else if (f[0] == "V" && f.Length == 4)
 					{
@@ -360,7 +393,7 @@ namespace RestockRegen
 			}
 			CultureInfo inv = CultureInfo.InvariantCulture;
 			var lines = new List<string> { "# RestockRegen ancient armor records. S = spot (prefab x y z rx ry rz), V = zone last visited (zone x, zone y, day)." };
-			lines.AddRange(s_spots.Values.Select(s => string.Format(inv, "S {0} {1} {2} {3} {4} {5} {6}", s.Prefab, s.Pos.x, s.Pos.y, s.Pos.z, s.Rot.x, s.Rot.y, s.Rot.z)));
+			lines.AddRange(s_spots.Values.Select(s => string.Format(inv, "S {0} {1:R} {2:R} {3:R} {4:R} {5:R} {6:R}", s.Prefab, s.Pos.x, s.Pos.y, s.Pos.z, s.Rot.x, s.Rot.y, s.Rot.z)));
 			lines.AddRange(s_zoneVisit.Select(v => string.Format(inv, "V {0} {1} {2}", v.Key.x, v.Key.y, v.Value)));
 			string tmp = s_file + ".tmp";
 			File.WriteAllLines(tmp, lines);
