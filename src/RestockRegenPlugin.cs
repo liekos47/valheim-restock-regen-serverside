@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
@@ -24,7 +25,7 @@ namespace RestockRegen
 		// Working name; the final name is still to be chosen. Changing Guid renames the config file.
 		public const string Guid = "liekos47.restockregen";
 		public const string Name = "RestockRegen";
-		public const string Version = "0.10.0";
+		public const string Version = "0.11.0";
 
 		internal static ManualLogSource Log;
 		internal static RestockRegenPlugin Instance;
@@ -41,6 +42,16 @@ namespace RestockRegen
 		internal static ConfigEntry<bool> ResetOpened;
 		internal static ConfigEntry<bool> RestockLoaded;
 		internal static ConfigEntry<bool> MudPileRegenNow;
+		internal static ConfigEntry<bool> Crystals;
+		internal static ConfigEntry<int> CrystalDays;
+		internal static ConfigEntry<bool> CrystalDryRun;
+		internal static ConfigEntry<bool> CrystalRegenNow;
+		internal static ConfigEntry<string> CrystalNotifyText;
+		internal static ConfigEntry<string> CrystalEntranceText;
+		internal static ConfigEntry<string> CrystalDueText;
+		internal static ConfigEntry<float> CaveEntranceRadius;
+		internal static ConfigEntry<float> CaveRadius;
+		internal static DungeonRegrow MudKind, CrystalKind;
 		internal static ConfigEntry<bool> MudPiles;
 		internal static ConfigEntry<int> MudPileDays;
 		internal static ConfigEntry<bool> MudPileDryRun;
@@ -134,6 +145,49 @@ namespace RestockRegen
 			Instance = this;
 			Regrow.Configure(Config);
 
+			Crystals = Config.Bind("FrostCaves", "FrostCaveCrystals", true,
+				"Restore the crystals in Mountain frost caves that no player has been inside for CrystalDays in-game days. " +
+				"Only crystals the mod has seen can come back: one picked before it was installed left no trace.");
+			CrystalDays = Config.Bind("FrostCaves", "CrystalDays", 30,
+				"In-game days a frost cave must go without anyone inside before its crystals come back. Any visit starts the count again.");
+			CrystalDryRun = Config.Bind("FrostCaves", "CrystalDryRun", false,
+				"Log which frost caves would regenerate, but create and remove nothing and write nothing. Visits are then tracked in memory only.");
+			CrystalRegenNow = Config.Bind("FrostCaves", "CrystalRegenNow", false,
+				"One-shot: at the next daily sweep, every frost cave with picked crystals regenerates whatever its clock says, then this sets itself back to false.");
+			CrystalNotifyText = Config.Bind("FrostCaves", "CrystalNotifyText", "The spirits will restore the crystals after {days} without visitors",
+				"Shown to a player inside a frost cave with picked crystals (needs Notify on). {days} is CrystalDays; {mined} is how many were picked.");
+			CrystalEntranceText = Config.Bind("FrostCaves", "CrystalEntranceText", "The spirits will restore the crystals in {days} if no one enters",
+				"Shown at the entrance of a frost cave with picked crystals. {days} is what is left of the cave's clock; going in restarts it.");
+			CrystalDueText = Config.Bind("FrostCaves", "CrystalDueText", "The spirits will restore the crystals at the next dawn if no one enters",
+				"Shown at the entrance when the cave's time is already up.");
+			CaveEntranceRadius = Config.Bind("FrostCaves", "CaveEntranceRadius", 50f,
+				"Metres, measured flat, around a frost cave's centre within which a player on the surface gets the entrance message. " +
+				"A frost cave's surface location stands about 30 m from its interior's centre. Standing there does not count as a visit.");
+			CaveRadius = Config.Bind("FrostCaves", "CaveRadius", 200f,
+				"Metres from a frost cave's centre that count as inside it.");
+
+			DungeonRegrow.All.Clear();
+			MudKind = new DungeonRegrow(new DungeonRegrow.Kind
+			{
+				Label = "mud piles", DungeonLabel = "sunken crypt", Generator = "DG_SunkenCrypt",
+				Names = new[] { "mudpile2", "mudpile" }, Singular = "muddy scrap pile", Plural = "muddy scrap piles",
+				SpotsKey = "restockregen_mudspots", VisitKey = "restockregen_lastvisit",
+				On = MudPiles, Days = MudPileDays, DryRun = MudPileDryRun, RegenNow = MudPileRegenNow,
+				NotifyText = MudPileNotifyText, EntranceText = MudPileEntranceText, DueText = MudPileDueText,
+				EntranceRadius = EntranceRadius, Radius = CryptRadius,
+			});
+			CrystalKind = new DungeonRegrow(new DungeonRegrow.Kind
+			{
+				Label = "frost cave crystals", DungeonLabel = "frost cave", Generator = "DG_Cave",
+				Names = new[] { "Pickable_MountainCaveCrystal" }, Singular = "crystal", Plural = "crystals",
+				SpotsKey = "restockregen_crystalspots", VisitKey = "restockregen_cavevisit",
+				On = Crystals, Days = CrystalDays, DryRun = CrystalDryRun, RegenNow = CrystalRegenNow,
+				NotifyText = CrystalNotifyText, EntranceText = CrystalEntranceText, DueText = CrystalDueText,
+				EntranceRadius = CaveEntranceRadius, Radius = CaveRadius,
+			});
+			DungeonRegrow.All.Add(MudKind);
+			DungeonRegrow.All.Add(CrystalKind);
+
 			// A Harmony id of its own per load. On a hot reload (ScriptEngine) the new copy is
 			// patched before the old copy is destroyed, and the old copy's UnpatchSelf would also
 			// remove the new copy's patches if they shared an id.
@@ -161,7 +215,7 @@ namespace RestockRegen
 				{
 					censusDone = true;
 					LootChests.Census();
-					RunMud(() => RestockRegen.MudPiles.Init());
+					RunMud(() => DungeonRegrow.All.ForEach(k => k.Init()));
 					int startDay = EnvMan.instance.GetDay();
 					RunRegrow(() => Regrow.Init(startDay));
 				}
@@ -170,7 +224,7 @@ namespace RestockRegen
 				if (Time.time >= nextMudTick)
 				{
 					nextMudTick = Time.time + Mathf.Max(5, VisitCheckSeconds.Value);
-					RunMud(() => RestockRegen.MudPiles.Tick(today));
+					RunMud(() => DungeonRegrow.All.ForEach(k => k.Tick(today)));
 					RunRegrow(() => Regrow.Tick(today));
 				}
 				if (today == lastSweepDay)
@@ -197,13 +251,16 @@ namespace RestockRegen
 				});
 				RunMud(() =>
 				{
-					var mudWatch = System.Diagnostics.Stopwatch.StartNew();
-					RestockRegen.MudPiles.Result m = RestockRegen.MudPiles.Sweep(today);
-					if (MudPiles.Value)
+					foreach (DungeonRegrow kind in DungeonRegrow.All)
 					{
-						Log.LogInfo($"day {today} mud piles{(MudPileDryRun.Value ? " (dry run)" : "")}: {m.Crypts} sunken crypts, " +
-							$"{m.Regenerated} regenerated ({m.Replaced} partly mined piles replaced, {m.Rebuilt} rebuilt), " +
-							$"{m.Waiting} waiting, {m.Occupied} skipped as occupied, {mudWatch.ElapsedMilliseconds} ms");
+						var watch2 = System.Diagnostics.Stopwatch.StartNew();
+						DungeonRegrow.Result m = kind.Sweep(today);
+						if (kind.K.On.Value)
+						{
+							Log.LogInfo($"day {today} {kind.K.Label}{(kind.K.DryRun.Value ? " (dry run)" : "")}: {m.Dungeons} {kind.K.DungeonLabel}s, " +
+								$"{m.Regenerated} regenerated ({m.Replaced} damaged replaced, {m.Rebuilt} gone rebuilt), " +
+								$"{m.Waiting} waiting, {m.Occupied} skipped as occupied, {watch2.ElapsedMilliseconds} ms");
+						}
 					}
 				});
 				var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -219,8 +276,8 @@ namespace RestockRegen
 			}
 		}
 
-		// The mud pile module is new and creates and removes objects; a fault in it must not stop
-		// chest restocking. After one exception it switches itself off until the next restart.
+		// The dungeon regrow code (mud piles, crystals) creates and removes objects; a fault in it must
+		// not stop chest restocking. After one exception it switches itself off until the next restart.
 		private void RunMud(Action action)
 		{
 			if (mudFailed)
@@ -234,7 +291,7 @@ namespace RestockRegen
 			catch (Exception e)
 			{
 				mudFailed = true;
-				Log.LogError($"mud piles failed and are off until restart: {e}");
+				Log.LogError($"dungeon regrow (mud piles, crystals) failed and is off until restart: {e}");
 			}
 		}
 
@@ -295,7 +352,7 @@ namespace RestockRegen
 				if (WorldReady())
 				{
 					History.Flush();
-					RestockRegen.MudPiles.FlushPending();
+					DungeonRegrow.All.ForEach(k => k.FlushPending());
 					Regrow.Save();
 				}
 			}
@@ -320,20 +377,21 @@ namespace RestockRegen
 			}
 		}
 
-		// "!restock regen": every free sunken crypt with mined piles, now rather than at the next sweep.
-		internal void RegenCryptsNow()
+		// "restock-regen" (sunken crypts) and "restock-regen-crystals" (frost caves): every free
+		// dungeon of that kind with something taken, now rather than at the next sweep.
+		internal void RegenDungeonsNow(DungeonRegrow kind)
 		{
 			if (!WorldReady())
 			{
 				return;
 			}
-			MudPileRegenNow.Value = true;
+			kind.K.RegenNow.Value = true;
 			int today = EnvMan.instance.GetDay();
 			RunMud(() =>
 			{
-				RestockRegen.MudPiles.Result m = RestockRegen.MudPiles.Sweep(today);
-				Log.LogInfo($"regen now{(MudPileDryRun.Value ? " (dry run)" : "")}: {m.Regenerated} crypts regenerated " +
-					$"({m.Replaced} partly mined piles replaced, {m.Rebuilt} rebuilt), {m.Occupied} occupied, done when free");
+				DungeonRegrow.Result m = kind.Sweep(today);
+				Log.LogInfo($"{kind.K.Label} regen now{(kind.K.DryRun.Value ? " (dry run)" : "")}: {m.Regenerated} {kind.K.DungeonLabel}s regenerated " +
+					$"({m.Replaced} damaged replaced, {m.Rebuilt} gone rebuilt), {m.Occupied} occupied, done when free");
 			});
 		}
 
@@ -342,9 +400,9 @@ namespace RestockRegen
 		{
 			int today = EnvMan.instance != null ? EnvMan.instance.GetDay() : 0;
 			return $"RestockRegen {Version}, day {today}: {LootChests.Prefabs.Count} loot chest kinds; " +
-				RestockRegen.MudPiles.Summary() + (mudFailed ? " (mud piles off after an error)" : "") + "; " +
+				string.Join("; ", DungeonRegrow.All.Select(k => k.Summary())) + (mudFailed ? " (dungeon regrow off after an error)" : "") + "; " +
 				Regrow.Summary() + (regrowFailed ? " (off after an error)" : "") +
-				(DryRun.Value ? "; chests DRY RUN" : "") + (MudPileDryRun.Value ? "; mud piles DRY RUN" : "");
+				(DryRun.Value ? "; chests DRY RUN" : "");
 		}
 	}
 }

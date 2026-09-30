@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace RestockRegen
 {
-	// Creating and removing world objects from the server, shared by MudPiles and Regrow.
+	// Creating and removing world objects from the server, shared by DungeonRegrow and Regrow.
 	internal static class WorldObjects
 	{
 		// The same steps ZNetView.Awake takes for an object that has no ZDO yet: CreateNewZDO,

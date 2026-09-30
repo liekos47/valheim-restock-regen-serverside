@@ -1,3 +1,13 @@
+## 0.11.0
+
+- Frost cave crystals come back. The game deletes a crystal when it is picked and never restores
+  it (32 picked on the owner's world between 2026-09-18 and 09-25 had not returned by 09-29). A
+  frost cave's crystals now regenerate once nobody has been inside it for 30 in-game days, exactly
+  like the sunken crypts' mud piles, with the same entrance and inside messages.
+- `/kick restock-regen-crystals`, and `[FrostCaves]` settings.
+- The mud pile code became a shared dungeon regrow engine for both. Mud pile settings, stored data
+  and behaviour are unchanged.
+
 ## 0.10.0
 
 - Obsidian deposits and dragon eggs in the Mountains come back like ancient armor: once no player

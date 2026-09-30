@@ -4,7 +4,8 @@ A server-side mod for Valheim dedicated servers that brings the world's one-shot
 over time:
 
 - **Loot chests** refill 30 in-game days after they are first opened.
-- **Muddy scrap piles** in sunken crypts come back after a crypt has gone 30 days without visitors.
+- **Muddy scrap piles** in sunken crypts and **crystals** in frost caves come back after the
+  dungeon has gone 30 days without visitors.
 - **Ancient armor** (the giant's helmets and swords in the Mistlands), **obsidian** and **dragon
   eggs** (Mountains) come back where nobody has been for 30 days.
 
@@ -20,6 +21,7 @@ they see arrives through the game's own messages.
 - [What players see](#what-players-see)
 - [Loot chests](#loot-chests)
 - [Muddy scrap piles](#muddy-scrap-piles)
+- [Frost cave crystals](#frost-cave-crystals)
 - [Ancient armor, obsidian and dragon eggs](#ancient-armor-obsidian-and-dragon-eggs)
 - [Admin commands](#admin-commands)
 - [Settings](#settings)
@@ -37,6 +39,8 @@ they see arrives through the game's own messages.
 | Opening a loot chest someone opened before | Top left | Last opened by Bjorn 3 days ago, first by Astrid 12 days ago |
 | Arriving at the entrance of a sunken crypt with mined piles | Middle of the screen | The spirits will restore muddy scrap piles in 12 days if no one enters |
 | Going inside that crypt | Middle of the screen | The spirits will restore muddy scrap piles after 30 days without visitors |
+| Arriving at the entrance of a frost cave with picked crystals | Middle of the screen | The spirits will restore the crystals in 12 days if no one enters |
+| Going inside that cave | Middle of the screen | The spirits will restore the crystals after 30 days without visitors |
 | Entering the Mistlands | Middle of the screen | The spirits will restore ancient armor after 30 days without visitors |
 | Entering the Mountains | Middle of the screen | The spirits will restore obsidian and dragon eggs after 30 days without visitors |
 
@@ -67,6 +71,19 @@ they see arrives through the game's own messages.
   A pile mined out completely before the mod was installed left nothing behind and cannot come
   back.
 - A crypt with a player in it, or next to it, waits until they leave.
+
+## Frost cave crystals
+
+- The crystals growing in the Mountains' frost caves (`Pickable_MountainCaveCrystal`). The game
+  never brings them back: picking one deletes it.
+- They work exactly like the sunken crypts' mud piles: a cave's crystals come back once nobody has
+  been **inside** it for 30 in-game days, any visit starts the count again, and standing at the
+  entrance does not count.
+- Every crystal is remembered from the first time the mod sees it. Crystals picked before the mod
+  was installed cannot come back.
+- A cave with a player in it, or next to it, waits until they leave.
+- Players get the same two messages as at a crypt: the days left at the entrance, and the full 30
+  days once inside.
 
 ## Ancient armor, obsidian and dragon eggs
 
@@ -119,6 +136,7 @@ single word with no spaces.
 | `/kick restock-regen-armor` | Restores every mined ancient armor piece **now**, whatever its clock, except where a player is near or has built. |
 | `/kick restock-regen-obsidian` | The same for obsidian deposits. |
 | `/kick restock-regen-eggs` | The same for dragon eggs. |
+| `/kick restock-regen-crystals` | Regenerates every frost cave with picked crystals **now**, like `restock-regen` does for crypts. |
 | `/kick restock-reload` | Reloads the mod from `BepInEx/scripts` without restarting the server ([hot reload](#hot-reload)). `/kick reload-restock-regen` does the same. |
 
 ### Changing settings with restock-set
@@ -191,6 +209,22 @@ every 30 seconds, and can also be changed in game with `/kick restock-set`.
 | `EntranceRadius` | `30` | Metres around a crypt's entrance where a player gets the entrance message. |
 | `CryptRadius` | `200` | Metres from a crypt's centre that count as inside it. |
 
+### FrostCaves
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `FrostCaveCrystals` | `true` | Restore the crystals in frost caves. |
+| `CrystalDays` | `30` | In-game days without anyone inside before a cave's crystals come back. |
+| `CrystalDryRun` | `false` | Log which caves would regenerate, change nothing. |
+| `CrystalRegenNow` | `false` | One-shot: every cave with picked crystals regenerates at the next daily check, then this switches itself off. `/kick restock-regen-crystals` does it immediately instead. |
+| `CrystalEntranceText` | `The spirits will restore the crystals in {days} if no one enters` | At a cave's entrance, with the days left. |
+| `CrystalNotifyText` | `The spirits will restore the crystals after {days} without visitors` | Inside a cave. |
+| `CrystalDueText` | `The spirits will restore the crystals at the next dawn if no one enters` | At the entrance when the time is up. |
+| `CaveEntranceRadius` | `50` | Metres around a cave's centre where a player on the surface gets the entrance message. |
+| `CaveRadius` | `200` | Metres from a cave's centre that count as inside it. |
+
+`VisitCheckSeconds` under MudPiles sets how often frost caves are checked too.
+
 ### AncientArmor
 
 | Setting | Default | What it does |
@@ -257,6 +291,8 @@ dedicated server. Put `RestockRegen.dll` in `BepInEx/plugins/`, or in `BepInEx/s
   `restockregen_firstday`, `restockregen_lastby`, `restockregen_lastday`).
 - On each sunken crypt: its pile spots (`restockregen_mudspots`) and last visit
   (`restockregen_lastvisit`).
+- On each frost cave: its crystal spots (`restockregen_crystalspots`) and last visit
+  (`restockregen_cavevisit`).
 - Beside the world save: `worlds_local/<world>.restockregen.txt`, the ancient armor, obsidian and
   dragon egg spots, and when each area was last visited. Keep it with the world when you back it up or move it.
 
