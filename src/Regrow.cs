@@ -18,8 +18,10 @@ namespace RestockRegen
 		  chunk deletes that too.
 		- Obsidian, Mountains: MineRock_Obsidian. No broken version: a partly mined deposit is the
 		  same object with a "health" string (MineRock5), a mined-out one is deleted.
-		- Dragon eggs, Mountains: Pickable_DragonEgg. Taking one deletes it (Pickable.RPC_Pick, no
-		  respawn time).
+		Dragon eggs were a third group until 0.12.0 and were removed: the game respawns them itself.
+		A taken Pickable_DragonEgg stays in the world marked picked and is unpicked again by the
+		game's own timer (the owner's save holds eggs with s_picked back at false), so they were
+		never "gone" for this module to restore.
 
 		So every object's spot - prefab, position, rotation - is remembered from the first time it
 		is seen, whole or damaged. There is no object to keep that list on, so it lives in a text
@@ -92,10 +94,7 @@ namespace RestockRegen
 				"the giant's helmets and swords in the Mistlands");
 			Group obsidian = Bind(config, "Obsidian", "obsidian", "obsidian",
 				new[] { "MineRock_Obsidian" }, "obsidian deposits in the Mountains");
-			Group eggs = Bind(config, "DragonEgg", "eggs", "dragon eggs",
-				new[] { "Pickable_DragonEgg" },
-				"dragon eggs on the Mountains' egg nests. Restoring them makes Moder repeatable");
-			Groups.AddRange(new[] { armor, obsidian, eggs });
+			Groups.AddRange(new[] { armor, obsidian });
 
 			s_notices.Add(new BiomeNotice
 			{
@@ -109,9 +108,9 @@ namespace RestockRegen
 			s_notices.Add(new BiomeNotice
 			{
 				Biome = Heightmap.Biome.Mountain,
-				Groups = new[] { obsidian, eggs },
-				Text = config.Bind("Mountains", "MountainsNotifyText", "The spirits will restore obsidian and dragon eggs after {days} without visitors",
-					"Shown to a player entering the Mountains while Obsidian or DragonEgg is on (needs Notify on). {days} is ObsidianDays, or DragonEggDays if obsidian is off."),
+				Groups = new[] { obsidian },
+				Text = config.Bind("Mountains", "MountainsNotifyText", "The spirits will restore obsidian after {days} without visitors",
+					"Shown to a player entering the Mountains while Obsidian is on (needs Notify on). {days} is ObsidianDays."),
 				Cooldown = config.Bind("Mountains", "MountainsNotifyCooldown", 10f,
 					"Minutes. A player is told at most once in this long."),
 			});
@@ -204,6 +203,12 @@ namespace RestockRegen
 
 			s_file = Path.Combine(SaveSystem.GetWorldsSaveRootPath(ZNet.m_world.m_fileSource), ZNet.instance.GetWorldName() + ".restockregen.txt");
 			Load();
+			// Spots of a kind this version no longer tracks (dragon eggs, before 0.12.0) are dropped.
+			foreach (var stale in s_spots.Where(kv => !s_groupOf.ContainsKey(kv.Value.Prefab)).Select(kv => kv.Key).ToList())
+			{
+				s_spots.Remove(stale);
+				s_dirty = true;
+			}
 			var before = Groups.ToDictionary(g => g, g => SpotsOf(g));
 			var whole = Groups.ToDictionary(g => g, g => 0);
 			var damaged = Groups.ToDictionary(g => g, g => 0);

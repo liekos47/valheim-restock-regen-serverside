@@ -25,7 +25,7 @@ namespace RestockRegen
 		// Working name; the final name is still to be chosen. Changing Guid renames the config file.
 		public const string Guid = "liekos47.restockregen";
 		public const string Name = "RestockRegen";
-		public const string Version = "0.11.0";
+		public const string Version = "0.12.0";
 
 		internal static ManualLogSource Log;
 		internal static RestockRegenPlugin Instance;
@@ -51,7 +51,16 @@ namespace RestockRegen
 		internal static ConfigEntry<string> CrystalDueText;
 		internal static ConfigEntry<float> CaveEntranceRadius;
 		internal static ConfigEntry<float> CaveRadius;
-		internal static DungeonRegrow MudKind, CrystalKind;
+		internal static ConfigEntry<bool> BlackCores;
+		internal static ConfigEntry<int> BlackCoreDays;
+		internal static ConfigEntry<bool> BlackCoreDryRun;
+		internal static ConfigEntry<bool> BlackCoreRegenNow;
+		internal static ConfigEntry<string> BlackCoreNotifyText;
+		internal static ConfigEntry<string> BlackCoreEntranceText;
+		internal static ConfigEntry<string> BlackCoreDueText;
+		internal static ConfigEntry<float> MineEntranceRadius;
+		internal static ConfigEntry<float> MineRadius;
+		internal static DungeonRegrow MudKind, CrystalKind, BlackCoreKind;
 		internal static ConfigEntry<bool> MudPiles;
 		internal static ConfigEntry<int> MudPileDays;
 		internal static ConfigEntry<bool> MudPileDryRun;
@@ -166,6 +175,27 @@ namespace RestockRegen
 			CaveRadius = Config.Bind("FrostCaves", "CaveRadius", 200f,
 				"Metres from a frost cave's centre that count as inside it.");
 
+			BlackCores = Config.Bind("InfestedMines", "BlackCores", true,
+				"Restore the black cores in Mistlands infested mines that no player has been inside for BlackCoreDays in-game days. " +
+				"A taken core's stand stays in the world marked as picked, so every taken core can come back, including ones taken before the mod was installed.");
+			BlackCoreDays = Config.Bind("InfestedMines", "BlackCoreDays", 30,
+				"In-game days an infested mine must go without anyone inside before its black cores come back. Any visit starts the count again.");
+			BlackCoreDryRun = Config.Bind("InfestedMines", "BlackCoreDryRun", false,
+				"Log which infested mines would regenerate, but change nothing and write nothing. Visits are then tracked in memory only.");
+			BlackCoreRegenNow = Config.Bind("InfestedMines", "BlackCoreRegenNow", false,
+				"One-shot: at the next daily sweep, every infested mine with taken black cores regenerates whatever its clock says, then this sets itself back to false.");
+			BlackCoreNotifyText = Config.Bind("InfestedMines", "BlackCoreNotifyText", "The spirits will restore the black cores after {days} without visitors",
+				"Shown to a player inside an infested mine with taken black cores (needs Notify on). {days} is BlackCoreDays; {mined} is how many were taken.");
+			BlackCoreEntranceText = Config.Bind("InfestedMines", "BlackCoreEntranceText", "The spirits will restore the black cores in {days} if no one enters",
+				"Shown at the entrance of an infested mine with taken black cores. {days} is what is left of the mine's clock; going in restarts it.");
+			BlackCoreDueText = Config.Bind("InfestedMines", "BlackCoreDueText", "The spirits will restore the black cores at the next dawn if no one enters",
+				"Shown at the entrance when the mine's time is already up.");
+			MineEntranceRadius = Config.Bind("InfestedMines", "MineEntranceRadius", 50f,
+				"Metres, measured flat, around an infested mine's centre within which a player on the surface gets the entrance message. " +
+				"A mine's surface location stands about 30 m from its interior's centre. Standing there does not count as a visit.");
+			MineRadius = Config.Bind("InfestedMines", "MineRadius", 200f,
+				"Metres from an infested mine's centre that count as inside it.");
+
 			DungeonRegrow.All.Clear();
 			MudKind = new DungeonRegrow(new DungeonRegrow.Kind
 			{
@@ -185,8 +215,18 @@ namespace RestockRegen
 				NotifyText = CrystalNotifyText, EntranceText = CrystalEntranceText, DueText = CrystalDueText,
 				EntranceRadius = CaveEntranceRadius, Radius = CaveRadius,
 			});
+			BlackCoreKind = new DungeonRegrow(new DungeonRegrow.Kind
+			{
+				Label = "black cores", DungeonLabel = "infested mine", Generator = "DG_DvergrTown",
+				Names = new[] { "Pickable_BlackCoreStand" }, Singular = "black core", Plural = "black cores",
+				SpotsKey = "restockregen_corespots", VisitKey = "restockregen_minevisit",
+				On = BlackCores, Days = BlackCoreDays, DryRun = BlackCoreDryRun, RegenNow = BlackCoreRegenNow,
+				NotifyText = BlackCoreNotifyText, EntranceText = BlackCoreEntranceText, DueText = BlackCoreDueText,
+				EntranceRadius = MineEntranceRadius, Radius = MineRadius,
+			});
 			DungeonRegrow.All.Add(MudKind);
 			DungeonRegrow.All.Add(CrystalKind);
+			DungeonRegrow.All.Add(BlackCoreKind);
 
 			// A Harmony id of its own per load. On a hot reload (ScriptEngine) the new copy is
 			// patched before the old copy is destroyed, and the old copy's UnpatchSelf would also
@@ -291,7 +331,7 @@ namespace RestockRegen
 			catch (Exception e)
 			{
 				mudFailed = true;
-				Log.LogError($"dungeon regrow (mud piles, crystals) failed and is off until restart: {e}");
+				Log.LogError($"dungeon regrow (mud piles, crystals, black cores) failed and is off until restart: {e}");
 			}
 		}
 
@@ -308,11 +348,11 @@ namespace RestockRegen
 			catch (Exception e)
 			{
 				regrowFailed = true;
-				Log.LogError($"regrow (ancient armor, obsidian, dragon eggs) failed and is off until restart: {e}");
+				Log.LogError($"regrow (ancient armor, obsidian) failed and is off until restart: {e}");
 			}
 		}
 
-		// "restock-regen-armor", "-obsidian", "-eggs": every damaged or gone spot of that kind that
+		// "restock-regen-armor", "-obsidian": every damaged or gone spot of that kind that
 		// is free, now, whatever its clock. Returns false for an unknown kind.
 		internal bool RegrowNow(string id)
 		{

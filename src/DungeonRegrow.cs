@@ -17,7 +17,12 @@ namespace RestockRegen
 		  picking one deletes it (Pickable.RPC_Pick). On the owner's world 32 picked between
 		  2026-09-18 and 09-25 had not come back by 09-29.
 
-		Either way nothing in the world says the thing was ever there, so every spot - position,
+		- Black cores, infested mines (DG_DvergrTown): "Pickable_BlackCoreStand". This one is not
+		  deleted: the stand stays and the object is marked ZDOVars.s_picked, for good (39 of 172 on
+		  the owner's world on 2026-09-30). Restoring it is clearing that flag, which Pickable.Awake
+		  reads the next time a client loads it; nothing is created or removed.
+
+		For the first two nothing in the world says the thing was ever there, so every spot - position,
 		rotation and whole prefab - is remembered from the moment it is seen, whole or damaged, and
 		stored on the dungeon's own generator ZDO so it survives restarts. Things taken before the mod
 		saw them cannot be brought back.
@@ -108,6 +113,9 @@ namespace RestockRegen
 
 		private static float Flat(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
 
+		// Whole: the whole prefab, and not a pickable that has been picked and left standing.
+		private bool IsWhole(ZDO zdo) => m_intact.Contains(zdo.GetPrefab()) && !zdo.GetBool(ZDOVars.s_picked);
+
 		internal void Init()
 		{
 			m_intactOf.Clear();
@@ -168,7 +176,18 @@ namespace RestockRegen
 			}
 			m_ready = true;
 			int spots = m_dungeons.Values.Sum(c => c.Spots.Count);
-			int intactNow = things.Count(p => m_intact.Contains(p.GetPrefab()));
+			int intactNow = things.Count(IsWhole);
+			foreach (string name in K.Names)
+			{
+				// What the game itself does with a picked one decides how it is restored; logged so a
+				// game update that changes it is noticed.
+				Pickable pickable = ZNetScene.instance.GetPrefab(name)?.GetComponent<Pickable>();
+				if (pickable != null)
+				{
+					RestockRegenPlugin.Log.LogInfo($"{K.Label}: {name} is a pickable, game respawn {pickable.m_respawnTimeMinutes} min, " +
+						(pickable.m_hideWhenPicked != null ? "stays in the world when picked" : "deleted when picked"));
+				}
+			}
 			RestockRegenPlugin.Log.LogInfo(
 				$"{K.Label}: {m_dungeons.Count} {K.DungeonLabel}s, {spots} spots remembered ({added} new this start), " +
 				$"{intactNow} whole and {things.Count - intactNow} damaged in the world now{(K.On.Value ? "" : " (off)")}{(K.DryRun.Value ? " (dry run)" : "")}");
@@ -326,7 +345,7 @@ namespace RestockRegen
 			// Only the zones around the dungeon, not the whole world: 4 zones of 64 m either side.
 			m_nearby.Clear();
 			ZDOMan.instance.FindSectorObjects(ZoneSystem.GetZone(dungeon.Pos), new SimulationDistance(4, 0, true), m_nearby);
-			var intact = new HashSet<(int, int, int)>(m_nearby.Where(z => m_intact.Contains(z.GetPrefab())).Select(z => Key(z.GetPosition())));
+			var intact = new HashSet<(int, int, int)>(m_nearby.Where(IsWhole).Select(z => Key(z.GetPosition())));
 			int taken = dungeon.Spots.Keys.Count(k => !intact.Contains(k));
 			if (taken == 0)
 			{
@@ -437,7 +456,7 @@ namespace RestockRegen
 				{
 					var key = Key(zdo.GetPosition());
 					// A whole one wins over a damaged one at the same spot.
-					if (!standing.TryGetValue(key, out ZDO other) || !m_intact.Contains(other.GetPrefab()))
+					if (!standing.TryGetValue(key, out ZDO other) || !IsWhole(other))
 					{
 						standing[key] = zdo;
 					}
@@ -468,7 +487,7 @@ namespace RestockRegen
 					result.Waiting++;
 					continue;
 				}
-				var missing = dungeon.Spots.Where(kv => !(standing.TryGetValue(kv.Key, out ZDO z) && m_intact.Contains(z.GetPrefab()))).ToList();
+				var missing = dungeon.Spots.Where(kv => !(standing.TryGetValue(kv.Key, out ZDO z) && IsWhole(z))).ToList();
 				if (missing.Count == 0)
 				{
 					continue; // nothing taken
@@ -491,6 +510,16 @@ namespace RestockRegen
 					if (standing.TryGetValue(kv.Key, out ZDO damaged))
 					{
 						replaced++;
+						if (m_intact.Contains(damaged.GetPrefab()))
+						{
+							// The whole prefab, picked and left standing: unpick it in place.
+							if (!dryRun)
+							{
+								damaged.Set(ZDOVars.s_picked, false);
+								damaged.Set(ZDOVars.s_pickedTime, 0L);
+							}
+							continue;
+						}
 						if (!dryRun)
 						{
 							WorldObjects.Remove(damaged);

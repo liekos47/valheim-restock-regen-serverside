@@ -4,10 +4,10 @@ A server-side mod for Valheim dedicated servers that brings the world's one-shot
 over time:
 
 - **Loot chests** refill 30 in-game days after they are first opened.
-- **Muddy scrap piles** in sunken crypts and **crystals** in frost caves come back after the
-  dungeon has gone 30 days without visitors.
-- **Ancient armor** (the giant's helmets and swords in the Mistlands), **obsidian** and **dragon
-  eggs** (Mountains) come back where nobody has been for 30 days.
+- **Muddy scrap piles** in sunken crypts, **crystals** in frost caves and **black cores** in
+  infested mines come back after the dungeon has gone 30 days without visitors.
+- **Ancient armor** (the giant's helmets and swords in the Mistlands) and **obsidian** (Mountains)
+  come back where nobody has been for 30 days.
 
 **Server-side only.** Install it on the dedicated server. Players install nothing, and everything
 they see arrives through the game's own messages.
@@ -22,7 +22,8 @@ they see arrives through the game's own messages.
 - [Loot chests](#loot-chests)
 - [Muddy scrap piles](#muddy-scrap-piles)
 - [Frost cave crystals](#frost-cave-crystals)
-- [Ancient armor, obsidian and dragon eggs](#ancient-armor-obsidian-and-dragon-eggs)
+- [Black cores](#black-cores)
+- [Ancient armor and obsidian](#ancient-armor-and-obsidian)
 - [Admin commands](#admin-commands)
 - [Settings](#settings)
 - [Hot reload](#hot-reload)
@@ -42,7 +43,9 @@ they see arrives through the game's own messages.
 | Arriving at the entrance of a frost cave with picked crystals | Middle of the screen | The spirits will restore the crystals in 12 days if no one enters |
 | Going inside that cave | Middle of the screen | The spirits will restore the crystals after 30 days without visitors |
 | Entering the Mistlands | Middle of the screen | The spirits will restore ancient armor after 30 days without visitors |
-| Entering the Mountains | Middle of the screen | The spirits will restore obsidian and dragon eggs after 30 days without visitors |
+| Arriving at the entrance of an infested mine with taken black cores | Middle of the screen | The spirits will restore the black cores in 12 days if no one enters |
+| Going inside that mine | Middle of the screen | The spirits will restore the black cores after 30 days without visitors |
+| Entering the Mountains | Middle of the screen | The spirits will restore obsidian after 30 days without visitors |
 
 ## Loot chests
 
@@ -85,15 +88,28 @@ they see arrives through the game's own messages.
 - Players get the same two messages as at a crypt: the days left at the entrance, and the full 30
   days once inside.
 
-## Ancient armor, obsidian and dragon eggs
+## Black cores
 
-Three kinds of world object that work the same way, each with its own settings:
+- The black cores on their stands in the Mistlands' infested mines (`Pickable_BlackCoreStand`).
+  The game never brings them back: a taken core's stand stays, marked as taken, for good.
+- They follow the same rule as mud piles and crystals: a mine's cores come back once nobody has
+  been **inside** it for 30 in-game days, any visit starts the count again, and standing at the
+  entrance does not count.
+- Because the stand stays in the world, **every taken core can come back, including ones taken
+  before the mod was installed.** Nothing is created: the stand is simply marked as not taken.
+- A mine with a player in it, or next to it, waits until they leave.
+- Players get the same two messages as at a crypt: the days left at the entrance, and the full 30
+  days once inside.
+- The Queen's own lair is a separate dungeon and is not touched.
+
+## Ancient armor and obsidian
+
+Two kinds of world object that work the same way, each with its own settings:
 
 | Kind | Where | Objects |
 | --- | --- | --- |
 | Ancient armor | Mistlands | The giant's helmets and swords (`giant_helmet1`, `giant_helmet2`, `giant_sword1`, `giant_sword2`) |
 | Obsidian | Mountains | Obsidian deposits (`MineRock_Obsidian`) |
-| Dragon eggs | Mountains | The eggs on the dragon nests (`Pickable_DragonEgg`) |
 
 - A partly mined or missing object comes back once no player has been within 100 m of its spot for
   30 in-game days. Any visit starts the count again for that area.
@@ -102,8 +118,9 @@ Three kinds of world object that work the same way, each with its own settings:
 - An object is remembered from the first time the mod sees it, whole or damaged. Objects mined out
   or taken before the mod was installed cannot come back.
 - Players entering the Mistlands or the Mountains are told about it, at most once every 10 minutes.
-- **Dragon eggs make Moder repeatable:** with eggs coming back, players can summon her again. Set
-  `DragonEgg` to false if you would rather she stays a one-time fight.
+
+Dragon eggs are not handled by the mod because they do not need to be: the game brings taken eggs
+back by itself.
 
 ## Admin commands
 
@@ -135,8 +152,8 @@ single word with no spaces.
 | `/kick restock-regen` | Regenerates every sunken crypt with mined piles **now**, whatever its clock. A crypt with a player in or near it is done at the next daily check that finds it free. |
 | `/kick restock-regen-armor` | Restores every mined ancient armor piece **now**, whatever its clock, except where a player is near or has built. |
 | `/kick restock-regen-obsidian` | The same for obsidian deposits. |
-| `/kick restock-regen-eggs` | The same for dragon eggs. |
 | `/kick restock-regen-crystals` | Regenerates every frost cave with picked crystals **now**, like `restock-regen` does for crypts. |
+| `/kick restock-regen-cores` | Regenerates every infested mine with taken black cores **now**. |
 | `/kick restock-reload` | Reloads the mod from `BepInEx/scripts` without restarting the server ([hot reload](#hot-reload)). `/kick reload-restock-regen` does the same. |
 
 ### Changing settings with restock-set
@@ -225,6 +242,22 @@ every 30 seconds, and can also be changed in game with `/kick restock-set`.
 
 `VisitCheckSeconds` under MudPiles sets how often frost caves are checked too.
 
+### InfestedMines
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `BlackCores` | `true` | Restore the black cores in infested mines. |
+| `BlackCoreDays` | `30` | In-game days without anyone inside before a mine's cores come back. |
+| `BlackCoreDryRun` | `false` | Log which mines would regenerate, change nothing. |
+| `BlackCoreRegenNow` | `false` | One-shot: every mine with taken cores regenerates at the next daily check, then this switches itself off. `/kick restock-regen-cores` does it immediately instead. |
+| `BlackCoreEntranceText` | `The spirits will restore the black cores in {days} if no one enters` | At a mine's entrance, with the days left. |
+| `BlackCoreNotifyText` | `The spirits will restore the black cores after {days} without visitors` | Inside a mine. |
+| `BlackCoreDueText` | `The spirits will restore the black cores at the next dawn if no one enters` | At the entrance when the time is up. |
+| `MineEntranceRadius` | `50` | Metres around a mine's centre where a player on the surface gets the entrance message. |
+| `MineRadius` | `200` | Metres from a mine's centre that count as inside it. |
+
+`VisitCheckSeconds` under MudPiles sets how often infested mines are checked too.
+
 ### AncientArmor
 
 | Setting | Default | What it does |
@@ -247,21 +280,11 @@ every 30 seconds, and can also be changed in game with `/kick restock-set`.
 | `ObsidianVisitRadius` | `100` | Metres. A player this close counts as a visit, and nothing is restored with a player this close. |
 | `ObsidianBuildClearance` | `8` | Metres. No deposit is restored if anything a player built is this close. `0` turns the check off. |
 
-### DragonEgg
-
-| Setting | Default | What it does |
-| --- | --- | --- |
-| `DragonEgg` | `true` | Restore dragon eggs on the nests. This makes Moder repeatable. |
-| `DragonEggDays` | `30` | In-game days with no player within `DragonEggVisitRadius` before an egg comes back. |
-| `DragonEggDryRun` | `false` | Log which eggs would come back, change nothing. |
-| `DragonEggVisitRadius` | `100` | Metres. A player this close counts as a visit, and nothing is restored with a player this close. |
-| `DragonEggBuildClearance` | `8` | Metres. No egg is restored if anything a player built is this close. `0` turns the check off. |
-
 ### Mountains
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| `MountainsNotifyText` | `The spirits will restore obsidian and dragon eggs after {days} without visitors` | Shown on entering the Mountains while `Obsidian` or `DragonEgg` is on. `{days}` is `ObsidianDays`. |
+| `MountainsNotifyText` | `The spirits will restore obsidian after {days} without visitors` | Shown on entering the Mountains while `Obsidian` is on. `{days}` is `ObsidianDays`. |
 | `MountainsNotifyCooldown` | `10` | Minutes. A player is told at most once in this long. |
 
 ## Hot reload
@@ -293,8 +316,10 @@ dedicated server. Put `RestockRegen.dll` in `BepInEx/plugins/`, or in `BepInEx/s
   (`restockregen_lastvisit`).
 - On each frost cave: its crystal spots (`restockregen_crystalspots`) and last visit
   (`restockregen_cavevisit`).
-- Beside the world save: `worlds_local/<world>.restockregen.txt`, the ancient armor, obsidian and
-  dragon egg spots, and when each area was last visited. Keep it with the world when you back it up or move it.
+- On each infested mine: its black core spots (`restockregen_corespots`) and last visit
+  (`restockregen_minevisit`).
+- Beside the world save: `worlds_local/<world>.restockregen.txt`, the ancient armor and obsidian
+  spots, and when each area was last visited. Keep it with the world when you back it up or move it.
 
 Removing the mod leaves these behind, and the game ignores them.
 

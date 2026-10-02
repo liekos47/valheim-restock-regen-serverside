@@ -1,3 +1,20 @@
+## 0.12.0
+
+- Black cores in infested mines come back. A taken core's stand stays in the world marked as taken
+  and the game never resets it (39 of 172 on the owner's world). A mine's cores are now restored
+  once nobody has been inside it for 30 in-game days, like mud piles and crystals, with the same
+  entrance and inside messages. Restoring is clearing the stand's taken mark, so nothing is created
+  and cores taken before the mod was installed come back too. `/kick restock-regen-cores` and
+  `[InfestedMines]` settings.
+- **Dragon eggs removed.** 0.10.0 added a dragon egg group on the belief that taking an egg deletes
+  it. That was wrong: the egg stays, marked as taken, and the game un-takes it on its own timer
+  (the owner's save holds eggs that have already come back). The group could never have done
+  anything, it only acted on eggs that had vanished, and none do. The `[DragonEgg]` settings and
+  `/kick restock-regen-eggs` are gone, and the Mountains message now mentions obsidian only. Egg
+  records are dropped from the record file.
+- The start-up log now says, for each tracked pickable, what the game itself does when it is picked
+  (deleted or kept) and its respawn time, so a wrong assumption like the one above shows up at once.
+
 ## 0.11.0
 
 - Frost cave crystals come back. The game deletes a crystal when it is picked and never restores

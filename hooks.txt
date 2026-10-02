@@ -109,3 +109,9 @@ MineRock5.LoadHealth
 MineRock5.SaveHealth
 field:Pickable.m_respawnTimeMinutes
 field:ZDOVars.s_health
+# 0.12.0 black cores (picked flag reset)
+Pickable.SetPicked
+Pickable.UpdateRespawn
+field:Pickable.m_hideWhenPicked
+field:ZDOVars.s_picked
+field:ZDOVars.s_pickedTime
