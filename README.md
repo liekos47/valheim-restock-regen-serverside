@@ -6,8 +6,8 @@ over time:
 - **Loot chests** refill 30 in-game days after they are first opened.
 - **Muddy scrap piles** in sunken crypts, **crystals** in frost caves and **black cores** in
   infested mines come back after the dungeon has gone 30 days without visitors.
-- **Ancient armor** (the giant's helmets and swords in the Mistlands) and **obsidian** (Mountains)
-  come back where nobody has been for 30 days.
+- **Ancient armor** (the giant's helmets and swords in the Mistlands), **obsidian** (Mountains) and
+  **flametal** (the spires in the Ashlands' lava) come back where nobody has been for 30 days.
 
 **Server-side only.** Install it on the dedicated server. Players install nothing, and everything
 they see arrives through the game's own messages.
@@ -23,7 +23,7 @@ they see arrives through the game's own messages.
 - [Muddy scrap piles](#muddy-scrap-piles)
 - [Frost cave crystals](#frost-cave-crystals)
 - [Black cores](#black-cores)
-- [Ancient armor and obsidian](#ancient-armor-and-obsidian)
+- [Ancient armor, obsidian and flametal](#ancient-armor-obsidian-and-flametal)
 - [Admin commands](#admin-commands)
 - [Settings](#settings)
 - [Hot reload](#hot-reload)
@@ -46,6 +46,7 @@ they see arrives through the game's own messages.
 | Arriving at the entrance of an infested mine with taken black cores | Middle of the screen | The spirits will restore the black cores in 12 days if no one enters |
 | Going inside that mine | Middle of the screen | The spirits will restore the black cores after 30 days without visitors |
 | Entering the Mountains | Middle of the screen | The spirits will restore obsidian after 30 days without visitors |
+| Entering the Ashlands | Middle of the screen | The spirits will restore flametal after 30 days without visitors |
 
 ## Loot chests
 
@@ -102,14 +103,15 @@ they see arrives through the game's own messages.
   days once inside.
 - The Queen's own lair is a separate dungeon and is not touched.
 
-## Ancient armor and obsidian
+## Ancient armor, obsidian and flametal
 
-Two kinds of world object that work the same way, each with its own settings:
+Three kinds of world object that work the same way, each with its own settings:
 
 | Kind | Where | Objects |
 | --- | --- | --- |
 | Ancient armor | Mistlands | The giant's helmets and swords (`giant_helmet1`, `giant_helmet2`, `giant_sword1`, `giant_sword2`) |
 | Obsidian | Mountains | Obsidian deposits (`MineRock_Obsidian`) |
+| Flametal | Ashlands | The flametal spires that rise out of the lava (`LeviathanLava`) |
 
 - A partly mined or missing object comes back once no player has been within 100 m of its spot for
   30 in-game days. Any visit starts the count again for that area.
@@ -117,7 +119,10 @@ Two kinds of world object that work the same way, each with its own settings:
   the spot, it stays gone and the spot is checked again every day.
 - An object is remembered from the first time the mod sees it, whole or damaged. Objects mined out
   or taken before the mod was installed cannot come back.
-- Players entering the Mistlands or the Mountains are told about it, at most once every 10 minutes.
+- Players entering the Mistlands, the Mountains or the Ashlands are told about it, at most once
+  every 10 minutes.
+- A flametal spire that has been mined sinks into the lava and is gone for good in the normal game.
+  Here a spire with any chunk mined, or one that has sunk, comes back whole.
 
 Dragon eggs are not handled by the mod because they do not need to be: the game brings taken eggs
 back by itself.
@@ -152,6 +157,7 @@ single word with no spaces.
 | `/kick restock-regen` | Regenerates every sunken crypt with mined piles **now**, whatever its clock. A crypt with a player in or near it is done at the next daily check that finds it free. |
 | `/kick restock-regen-armor` | Restores every mined ancient armor piece **now**, whatever its clock, except where a player is near or has built. |
 | `/kick restock-regen-obsidian` | The same for obsidian deposits. |
+| `/kick restock-regen-flametal` | The same for flametal spires. |
 | `/kick restock-regen-crystals` | Regenerates every frost cave with picked crystals **now**, like `restock-regen` does for crypts. |
 | `/kick restock-regen-cores` | Regenerates every infested mine with taken black cores **now**. |
 | `/kick restock-reload` | Reloads the mod from `BepInEx/scripts` without restarting the server ([hot reload](#hot-reload)). `/kick reload-restock-regen` does the same. |
@@ -280,6 +286,23 @@ every 30 seconds, and can also be changed in game with `/kick restock-set`.
 | `ObsidianVisitRadius` | `100` | Metres. A player this close counts as a visit, and nothing is restored with a player this close. |
 | `ObsidianBuildClearance` | `8` | Metres. No deposit is restored if anything a player built is this close. `0` turns the check off. |
 
+### Flametal
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `Flametal` | `true` | Restore flametal spires in the Ashlands. |
+| `FlametalDays` | `30` | In-game days with no player within `FlametalVisitRadius` before a spire comes back. |
+| `FlametalDryRun` | `false` | Log which spires would come back, change nothing. |
+| `FlametalVisitRadius` | `100` | Metres. A player this close counts as a visit, and nothing is restored with a player this close. |
+| `FlametalBuildClearance` | `8` | Metres. No spire is restored if anything a player built is this close. `0` turns the check off. |
+
+### Ashlands
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `AshlandsNotifyText` | `The spirits will restore flametal after {days} without visitors` | Shown on entering the Ashlands while `Flametal` is on. `{days}` is `FlametalDays`. |
+| `AshlandsNotifyCooldown` | `10` | Minutes. A player is told at most once in this long. |
+
 ### Mountains
 
 | Setting | Default | What it does |
@@ -318,8 +341,8 @@ dedicated server. Put `RestockRegen.dll` in `BepInEx/plugins/`, or in `BepInEx/s
   (`restockregen_cavevisit`).
 - On each infested mine: its black core spots (`restockregen_corespots`) and last visit
   (`restockregen_minevisit`).
-- Beside the world save: `worlds_local/<world>.restockregen.txt`, the ancient armor and obsidian
-  spots, and when each area was last visited. Keep it with the world when you back it up or move it.
+- Beside the world save: `worlds_local/<world>.restockregen.txt`, the ancient armor, obsidian and
+  flametal spots, and when each area was last visited. Keep it with the world when you back it up or move it.
 
 Removing the mod leaves these behind, and the game ignores them.
 

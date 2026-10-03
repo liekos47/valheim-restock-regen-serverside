@@ -1,3 +1,16 @@
+## 0.13.0
+
+- Flametal comes back. The flametal spire in the Ashlands' lava (`LeviathanLava`) runs the ocean
+  Leviathan's code: each hit has a chance of making it leave, which marks it dead, sinks it and
+  deletes it, and the game never puts it back. A spire with any chunk mined, or one that has sunk,
+  is now restored whole once no player has been within 100 m for 30 in-game days, and never within
+  8 m of anything a player built. `[Flametal]` and `[Ashlands]` settings,
+  `/kick restock-regen-flametal`, and a message on entering the Ashlands.
+- A spire floats, so its remembered spot is matched flat within 6 m rather than to 20 cm; the
+  nearest two spires on the owner's world are 25 m apart.
+- Not yet seen in a save: none of the 67 spires on the owner's world had been mined when this was
+  written, so the mined and sunk states come from the game code, not from an example.
+
 ## 0.12.0
 
 - Black cores in infested mines come back. A taken core's stand stays in the world marked as taken

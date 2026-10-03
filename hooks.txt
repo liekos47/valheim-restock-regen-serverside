@@ -115,3 +115,14 @@ Pickable.UpdateRespawn
 field:Pickable.m_hideWhenPicked
 field:ZDOVars.s_picked
 field:ZDOVars.s_pickedTime
+# 0.13.0 flametal spires (LeviathanLava)
+Leviathan.Leave
+Leviathan.OnHit
+Leviathan.FixedUpdate
+MineRock.AllDestroyed
+MineRock.GetHealth
+ZDO.GetFloat
+field:Leviathan.m_hitReactionChance
+field:Leviathan.m_mineRock
+field:MineRock.m_removeWhenDestroyed
+field:ZDOVars.s_dead

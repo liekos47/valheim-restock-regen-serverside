@@ -18,7 +18,13 @@ namespace RestockRegen
 		  chunk deletes that too.
 		- Obsidian, Mountains: MineRock_Obsidian. No broken version: a partly mined deposit is the
 		  same object with a "health" string (MineRock5), a mined-out one is deleted.
-		Dragon eggs were a third group until 0.12.0 and were removed: the game respawns them itself.
+		- Flametal, Ashlands: LeviathanLava, the spire that rises out of the lava. It is the ocean
+		  Leviathan's code: every hit has a chance (m_hitReactionChance) to make it leave, which sets
+		  ZDOVars.s_dead, plays the dive and then destroys it. Until then each mined chunk is a
+		  "Health<n>" float on it (MineRock). It floats on the lava, so its position can drift a
+		  little, and its spot is matched flat, within DriftRadius, instead of to 20 cm.
+
+		Dragon eggs were a group until 0.12.0 and were removed: the game respawns them itself.
 		A taken Pickable_DragonEgg stays in the world marked picked and is unpicked again by the
 		game's own timer (the owner's save holds eggs with s_picked back at false), so they were
 		never "gone" for this module to restore.
@@ -44,6 +50,7 @@ namespace RestockRegen
 		{
 			public string Id, Label;
 			public string[] Names;
+			public bool Drifts; // floats: match its spot flat and loosely
 			public ConfigEntry<bool> On, DryRun;
 			public ConfigEntry<int> Days;
 			public ConfigEntry<float> Radius, Clearance;
@@ -82,6 +89,9 @@ namespace RestockRegen
 		private static readonly Dictionary<Vector2i, int> s_zoneVisit = new Dictionary<Vector2i, int>();
 		private static readonly List<ZDO> s_nearby = new List<ZDO>();
 		private static readonly int s_health = "health".GetStableHashCode();
+		// MineRock keeps one "Health<n>" float per chunk, written only once the chunk has been hit.
+		private static readonly int[] s_chunkHealth = Enumerable.Range(0, 64).Select(i => ("Health" + i).GetStableHashCode()).ToArray();
+		private const float DriftRadius = 6f;
 		private static bool s_ready, s_dirty;
 		private static string s_file;
 
@@ -94,7 +104,10 @@ namespace RestockRegen
 				"the giant's helmets and swords in the Mistlands");
 			Group obsidian = Bind(config, "Obsidian", "obsidian", "obsidian",
 				new[] { "MineRock_Obsidian" }, "obsidian deposits in the Mountains");
-			Groups.AddRange(new[] { armor, obsidian });
+			Group flametal = Bind(config, "Flametal", "flametal", "flametal",
+				new[] { "LeviathanLava" }, "flametal spires in the Ashlands' lava");
+			flametal.Drifts = true;
+			Groups.AddRange(new[] { armor, obsidian, flametal });
 
 			s_notices.Add(new BiomeNotice
 			{
@@ -112,6 +125,15 @@ namespace RestockRegen
 				Text = config.Bind("Mountains", "MountainsNotifyText", "The spirits will restore obsidian after {days} without visitors",
 					"Shown to a player entering the Mountains while Obsidian is on (needs Notify on). {days} is ObsidianDays."),
 				Cooldown = config.Bind("Mountains", "MountainsNotifyCooldown", 10f,
+					"Minutes. A player is told at most once in this long."),
+			});
+			s_notices.Add(new BiomeNotice
+			{
+				Biome = Heightmap.Biome.AshLands,
+				Groups = new[] { flametal },
+				Text = config.Bind("Ashlands", "AshlandsNotifyText", "The spirits will restore flametal after {days} without visitors",
+					"Shown to a player entering the Ashlands while Flametal is on (needs Notify on). {days} is FlametalDays."),
+				Cooldown = config.Bind("Ashlands", "AshlandsNotifyCooldown", 10f,
 					"Minutes. A player is told at most once in this long."),
 			});
 		}
@@ -137,8 +159,21 @@ namespace RestockRegen
 		// The key of the remembered spot at this position, allowing for rounding: a position read
 		// back from the record file can land in the neighbouring 10 cm cell of the key the live
 		// object gives. Without this an object would be counted twice and, once due, doubled.
-		private static (int, int, int)? SpotKeyAt(Vector3 p)
+		private static (int, int, int)? SpotKeyAt(Vector3 p, int wholePrefab)
 		{
+			if (s_groupOf.TryGetValue(wholePrefab, out Group group) && group.Drifts)
+			{
+				// A floating object: the same kind within DriftRadius, measured flat. There are few of
+				// them, so a plain search is fine.
+				foreach (var kv in s_spots)
+				{
+					if (kv.Value.Prefab == wholePrefab && Flat(kv.Value.Pos, p) < DriftRadius)
+					{
+						return kv.Key;
+					}
+				}
+				return null;
+			}
 			var k = Key(p);
 			if (s_spots.ContainsKey(k))
 			{
@@ -169,9 +204,26 @@ namespace RestockRegen
 
 		private static float Flat(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
 
-		// Whole: the whole prefab and, for a MineRock5 like obsidian, no chunk damage recorded.
-		private static bool IsWhole(ZDO zdo) =>
-			s_intact.Contains(zdo.GetPrefab()) && string.IsNullOrEmpty(zdo.GetString(s_health));
+		// Whole: the whole prefab with no damage recorded - no MineRock5 health string (obsidian),
+		// no MineRock chunk hit and not marked dead (a flametal spire that is leaving).
+		private static bool IsWhole(ZDO zdo)
+		{
+			if (!s_intact.Contains(zdo.GetPrefab()) || !string.IsNullOrEmpty(zdo.GetString(s_health)) || zdo.GetBool(ZDOVars.s_dead))
+			{
+				return false;
+			}
+			if (s_groupOf.TryGetValue(zdo.GetPrefab(), out Group group) && group.Drifts)
+			{
+				foreach (int key in s_chunkHealth)
+				{
+					if (zdo.GetFloat(key, float.MaxValue) != float.MaxValue)
+					{
+						return false;
+					}
+				}
+			}
+			return true;
+		}
 
 		internal static void Init(int today)
 		{
@@ -245,7 +297,7 @@ namespace RestockRegen
 
 		private static void Remember(ZDO zdo)
 		{
-			if (SpotKeyAt(zdo.GetPosition()) != null)
+			if (SpotKeyAt(zdo.GetPosition(), s_intactOf[zdo.GetPrefab()]) != null)
 			{
 				return;
 			}
@@ -355,7 +407,7 @@ namespace RestockRegen
 				if (s_intactOf.ContainsKey(zdo.GetPrefab()))
 				{
 					Remember(zdo);
-					var key = SpotKeyAt(zdo.GetPosition()) ?? Key(zdo.GetPosition());
+					var key = SpotKeyAt(zdo.GetPosition(), s_intactOf[zdo.GetPrefab()]) ?? Key(zdo.GetPosition());
 					if (!standing.TryGetValue(key, out ZDO other) || !IsWhole(other))
 					{
 						standing[key] = zdo;
@@ -467,7 +519,7 @@ namespace RestockRegen
 							Pos = new Vector3(float.Parse(f[2], inv), float.Parse(f[3], inv), float.Parse(f[4], inv)),
 							Rot = new Vector3(float.Parse(f[5], inv), float.Parse(f[6], inv), float.Parse(f[7], inv)),
 						};
-						if (SpotKeyAt(spot.Pos) == null) // drops duplicates an older build wrote
+						if (SpotKeyAt(spot.Pos, spot.Prefab) == null) // drops duplicates an older build wrote
 						{
 							s_spots[Key(spot.Pos)] = spot;
 						}

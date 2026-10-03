@@ -18,6 +18,7 @@ namespace RestockRegen
 			/kick restock-regen-obsidian
 			/kick restock-regen-crystals
 			/kick restock-regen-cores
+			/kick restock-regen-flametal
 			/kick restock-get:MudPileDays
 			/kick restock-set:MudPileDays=20
 
@@ -109,7 +110,7 @@ namespace RestockRegen
 				string kind = lower.Substring("regen-".Length);
 				return RestockRegenPlugin.Instance.RegrowNow(kind)
 					? new[] { $"RestockRegen: restoring every damaged or gone {Regrow.Find(kind).Label} spot with nobody near and no build on it, now (details in the server log)" }
-					: new[] { "RestockRegen: use restock-regen (crypts), restock-regen-crystals, restock-regen-cores, restock-regen-armor or restock-regen-obsidian" };
+					: new[] { "RestockRegen: use restock-regen (crypts), restock-regen-crystals, restock-regen-cores, restock-regen-armor, restock-regen-obsidian or restock-regen-flametal" };
 			}
 			if (lower == "regen")
 			{
@@ -137,7 +138,7 @@ namespace RestockRegen
 			var help = new[]
 			{
 				"RestockRegen commands (in chat: /kick <command>, in the F5 console: kick <command>):",
-				"  restock-status   restock-regen   restock-regen-crystals   restock-regen-cores   restock-regen-armor   restock-regen-obsidian   restock-reload   restock-get:Setting   restock-set:Setting=value",
+				"  restock-status   restock-regen   restock-regen-crystals   restock-regen-cores   restock-regen-armor   restock-regen-obsidian   restock-regen-flametal   restock-reload   restock-get:Setting   restock-set:Setting=value",
 				"  In text settings type _ for a space. Settings: " + string.Join(", ", RestockRegenPlugin.Instance.Config.Keys.Select(k => k.Key)),
 			};
 			return help;
