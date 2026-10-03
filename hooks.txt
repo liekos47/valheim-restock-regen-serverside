@@ -138,3 +138,14 @@ field:DropOnDestroyed.m_dropWhenDestroyed
 SpawnArea.UpdateSpawn
 field:SpawnArea.m_prefabs
 field:SpawnArea.m_maxNear
+# 0.16.0 the Queen's citadel: her place from the generator's room data, the door's state
+DungeonGenerator.Save
+DungeonGenerator.PlaceRoom
+Room.GetHash
+Door.UpdateState
+Character.OnDeath
+EggHatch.Hatch
+field:ZDOVars.s_roomData
+field:ZDOVars.s_state
+field:Door.m_keyItem
+field:Door.m_consumeKey

@@ -1,3 +1,21 @@
+## 0.16.0
+
+- The Queen comes back. A Mistlands infested citadel whose Queen has been killed resets once nobody
+  has been inside it for 30 in-game days: the Queen (`SeekerQueen`) is put back in her place, the
+  sealed door (`dungeon_queen_door`) is closed again, and the seeker eggs and creep blocks the mod
+  has seen are restored. A citadel whose Queen is alive is never touched.
+  `/kick restock-regen-citadel` and `[Citadel]` settings.
+- A player standing in front of the door of a citadel whose Queen is dead is told how many days are
+  left, and again on going inside.
+- Read from the game's prefab data: the Queen is not spawned by anything, she is an object in the
+  citadel's entrance room, so once killed the game never puts her back by itself. Her place is
+  worked out from the room positions the citadel keeps, so a Queen killed before the mod was
+  installed comes back too. Checked against the owner's save of 2026-09-30: both citadels had no
+  Queen and an open door, and the room's 26 seeker spawners land exactly where the same
+  calculation puts them.
+- The sealed door needs a Sealbreaker and does not use it up, so closing it costs players nothing
+  they already have. `CitadelCloseDoor` turns that off.
+
 ## 0.15.0
 
 - The Deep North's Holes get their trash piles (`elaking_trashpile`) and spawner nests
