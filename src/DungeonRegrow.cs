@@ -44,6 +44,25 @@ namespace RestockRegen
 		  which respawns them after 240 minutes, and its roots are left alone on the owner's
 		  decision: many of them block passages.
 
+		- The Queen, the Mistlands' infested citadel (DG_DvergrBoss), from prefab data and the
+		  owner's save:
+		  - SeekerQueen is not spawned by anything. She is an object in the entrance room,
+		    dvergr_new_bossroom_ENTRANCE02, 2 m in front of and 24 m below the room's origin, turned
+		    270 degrees. Killed, her object is deleted and the game never puts her back by itself
+		    (the altar in her room can summon a new one for an offering). Both citadels on the
+		    owner's world had no Queen on 2026-09-30.
+		  - The generator keeps every room's hash, position and euler angles (DungeonGenerator.Save,
+		    ZDOVars.s_roomData), so her place is worked out from that. Checked against the save: the
+		    room's 26 TriggerSpawner_Seeker land exactly on their objects, for both citadels.
+		  - dungeon_queen_door, on the surface 24 m from the generator: a Door that needs DvergrKey
+		    and does not consume it. ZDOVars.s_state is 0 closed, 1 or -1 open.
+		  - SeekerEgg (277 in the room): hatching or breaking one deletes it. The creep blocks,
+		    blackmarble_creep_*: WearNTear pieces, deleted when broken.
+		  A citadel is only reset once its Queen is gone: then, after the days without visitors, she
+		  is created again at her place, the door is closed, and the eggs and creep the mod has
+		  seen are put back. While she lives nothing is touched. Its entrance is measured from the
+		  door, not from the generator.
+
 		Where nothing in the world says the thing was ever there, every spot - position,
 		rotation and whole prefab - is remembered from the moment it is seen, whole or damaged, and
 		stored on the dungeon's own generator ZDO so it survives restarts. Things taken before the mod
@@ -81,6 +100,12 @@ namespace RestockRegen
 			public ConfigEntry<int> Days;
 			public ConfigEntry<string> NotifyText, EntranceText, DueText;
 			public ConfigEntry<float> EntranceRadius, Radius;
+			// Only for a dungeon with a boss placed in one of its rooms (the Queen's citadel): the
+			// boss, its room, its place in that room's prefab, and the door at the surface.
+			public string Boss, BossRoom, Door;
+			public Vector3 BossOffset;
+			public float BossYaw;
+			public ConfigEntry<bool> CloseDoor;
 		}
 
 		internal static readonly List<DungeonRegrow> All = new List<DungeonRegrow>();
@@ -96,6 +121,8 @@ namespace RestockRegen
 		{
 			public ZDOID Generator;
 			public Vector3 Pos;
+			public Vector3 Entrance; // the door at the surface where the kind has one, else Pos
+			public ZDOID Door;
 			public readonly Dictionary<(int, int, int), Spot> Spots = new Dictionary<(int, int, int), Spot>();
 			public int LastVisit = -1;
 			public bool SpotsDirty, VisitDirty;
@@ -107,7 +134,7 @@ namespace RestockRegen
 		}
 
 		internal readonly Kind K;
-		private readonly int m_generator, m_spotsKey, m_visitKey;
+		private readonly int m_generator, m_spotsKey, m_visitKey, m_boss, m_bossRoom, m_door;
 		// Tracked prefab hash (whole or damaged) -> the whole prefab hash.
 		private readonly Dictionary<int, int> m_intactOf = new Dictionary<int, int>();
 		private readonly HashSet<int> m_intact = new HashSet<int>();
@@ -128,6 +155,12 @@ namespace RestockRegen
 			m_generator = kind.Generator.GetStableHashCode();
 			m_spotsKey = kind.SpotsKey.GetStableHashCode();
 			m_visitKey = kind.VisitKey.GetStableHashCode();
+			if (kind.Boss != null)
+			{
+				m_boss = kind.Boss.GetStableHashCode();
+				m_bossRoom = kind.BossRoom.GetStableHashCode();
+				m_door = kind.Door.GetStableHashCode();
+			}
 		}
 
 		private static (int, int, int) Key(Vector3 p) =>
@@ -172,6 +205,8 @@ namespace RestockRegen
 			m_dungeons.Clear();
 			m_otherDungeons.Clear();
 			var things = new List<ZDO>();
+			var doors = new List<ZDO>();
+			var bosses = new List<ZDO>();
 			foreach (ZDO zdo in ZDOMan.instance.m_objectsByID.Values)
 			{
 				int prefab = zdo.GetPrefab();
@@ -182,6 +217,14 @@ namespace RestockRegen
 				else if (dungeonPrefabs.Contains(prefab))
 				{
 					m_otherDungeons.Add(zdo.GetPosition());
+				}
+				else if (m_boss != 0 && prefab == m_door)
+				{
+					doors.Add(zdo);
+				}
+				else if (m_boss != 0 && prefab == m_boss)
+				{
+					bosses.Add(zdo);
 				}
 				else if (m_intactOf.ContainsKey(prefab))
 				{
@@ -213,6 +256,58 @@ namespace RestockRegen
 			RestockRegenPlugin.Log.LogInfo(
 				$"{K.Label}: {m_dungeons.Count} {K.DungeonLabel}s, {spots} spots remembered ({added} new this start), " +
 				$"{intactNow} whole and {things.Count - intactNow} damaged in the world now{(K.On.Value ? "" : " (off)")}{(K.DryRun.Value ? " (dry run)" : "")}");
+			if (m_boss != 0)
+			{
+				FindDoors(doors);
+				var alive = new HashSet<Dungeon>(bosses.Select(b => DungeonAt(b.GetPosition())).Where(d => d != null));
+				foreach (Dungeon dungeon in m_dungeons.Values)
+				{
+					RestockRegenPlugin.Log.LogInfo($"{K.DungeonLabel} at ({dungeon.Pos.x:0}, {dungeon.Pos.z:0}): {K.Boss} {(alive.Contains(dungeon) ? "alive" : "gone")}, " +
+						(BossSpot(dungeon, out Spot spot) ? $"its place is ({spot.Pos.x:0.0}, {spot.Pos.y:0.0}, {spot.Pos.z:0.0})" : $"its room {K.BossRoom} was not found, so it cannot be reset") +
+						(dungeon.Door != ZDOID.None ? $", door at ({dungeon.Entrance.x:0}, {dungeon.Entrance.z:0})" : ", door not found"));
+				}
+			}
+		}
+
+		// Each dungeon's door at the surface: the nearest one within 100 m, measured flat.
+		private void FindDoors(List<ZDO> doors)
+		{
+			foreach (Dungeon dungeon in m_dungeons.Values)
+			{
+				ZDO door = doors.Where(d => Flat(d.GetPosition(), dungeon.Pos) < 100f).OrderBy(d => Flat(d.GetPosition(), dungeon.Pos)).FirstOrDefault();
+				if (door != null)
+				{
+					dungeon.Door = door.m_uid;
+					dungeon.Entrance = door.GetPosition();
+				}
+			}
+		}
+
+		// Where the game put the boss: its room's saved position and rotation (DungeonGenerator.Save
+		// writes a count, then each room's hash, position and euler angles) applied to the boss's
+		// place in the room prefab, as DungeonGenerator.PlaceRoom does.
+		private bool BossSpot(Dungeon dungeon, out Spot spot)
+		{
+			spot = default;
+			byte[] data = ZDOMan.instance.GetZDO(dungeon.Generator)?.GetByteArray(ZDOVars.s_roomData);
+			if (data == null)
+			{
+				return false;
+			}
+			var pkg = new ZPackage(data);
+			int rooms = pkg.ReadInt();
+			for (int i = 0; i < rooms; i++)
+			{
+				int hash = pkg.ReadInt();
+				Vector3 pos = pkg.ReadVector3();
+				Quaternion rot = Quaternion.Euler(pkg.ReadVector3());
+				if (hash == m_bossRoom)
+				{
+					spot = new Spot { Prefab = m_boss, Pos = pos + rot * K.BossOffset, Rot = (rot * Quaternion.Euler(0f, K.BossYaw, 0f)).eulerAngles };
+					return true;
+				}
+			}
+			return false;
 		}
 
 		private Dungeon AddDungeon(ZDO generator)
@@ -221,7 +316,7 @@ namespace RestockRegen
 			{
 				return dungeon;
 			}
-			dungeon = new Dungeon { Generator = generator.m_uid, Pos = generator.GetPosition() };
+			dungeon = new Dungeon { Generator = generator.m_uid, Pos = generator.GetPosition(), Entrance = generator.GetPosition() };
 			int visit = generator.GetInt(m_visitKey);
 			dungeon.LastVisit = visit > 0 ? visit - 1 : -1;
 			byte[] data = generator.GetByteArray(m_spotsKey);
@@ -282,7 +377,7 @@ namespace RestockRegen
 			float bestDist = radius;
 			foreach (Dungeon dungeon in m_dungeons.Values)
 			{
-				float d = Flat(p, dungeon.Pos);
+				float d = Flat(p, dungeon.Entrance);
 				if (d < bestDist)
 				{
 					best = dungeon;
@@ -336,7 +431,7 @@ namespace RestockRegen
 					// Keep the record while they are still around the entrance, so walking in and
 					// out of the radius does not repeat the message.
 					if (m_welcomed.TryGetValue(peer.m_uid, out var last)
-						&& !(m_dungeons.TryGetValue(last.Dungeon, out Dungeon c) && (p.y < InteriorHeight ? Flat(p, c.Pos) < door * 2f : DungeonAt(p) == c)))
+						&& !(m_dungeons.TryGetValue(last.Dungeon, out Dungeon c) && (p.y < InteriorHeight ? Flat(p, c.Entrance) < door * 2f : DungeonAt(p) == c)))
 					{
 						m_welcomed.Remove(peer.m_uid);
 					}
@@ -360,7 +455,7 @@ namespace RestockRegen
 		// Tell a player at or in a dungeon that what was taken will come back, if anything was.
 		private void Welcome(ZNetPeer peer, Dungeon dungeon, bool inside, int today)
 		{
-			if (!RestockRegenPlugin.Notify.Value || dungeon.Spots.Count == 0)
+			if (!RestockRegenPlugin.Notify.Value || (m_boss == 0 && dungeon.Spots.Count == 0))
 			{
 				return;
 			}
@@ -369,7 +464,8 @@ namespace RestockRegen
 			ZDOMan.instance.FindSectorObjects(ZoneSystem.GetZone(dungeon.Pos), new SimulationDistance(4, 0, true), m_nearby);
 			var intact = new HashSet<(int, int, int)>(m_nearby.Where(IsWhole).Select(z => Key(z.GetPosition())));
 			int taken = dungeon.Spots.Keys.Count(k => !intact.Contains(k));
-			if (taken == 0)
+			// A boss dungeon is only reset once its boss is gone, whatever else was taken.
+			if (m_boss != 0 ? m_nearby.Any(z => z.GetPrefab() == m_boss && DungeonAt(z.GetPosition()) == dungeon) : taken == 0)
 			{
 				return;
 			}
@@ -467,12 +563,22 @@ namespace RestockRegen
 			// Index what is standing now, pick up dungeons and things that appeared since the last
 			// sweep, and assign spots the hook saw before their dungeon was known.
 			var standing = new Dictionary<(int, int, int), ZDO>();
+			var doors = new List<ZDO>();
+			var bosses = new List<ZDO>();
 			foreach (ZDO zdo in ZDOMan.instance.m_objectsByID.Values)
 			{
 				int prefab = zdo.GetPrefab();
 				if (prefab == m_generator)
 				{
 					AddDungeon(zdo);
+				}
+				else if (m_boss != 0 && prefab == m_door)
+				{
+					doors.Add(zdo);
+				}
+				else if (m_boss != 0 && prefab == m_boss)
+				{
+					bosses.Add(zdo);
 				}
 				else if (m_intactOf.ContainsKey(prefab))
 				{
@@ -493,6 +599,8 @@ namespace RestockRegen
 				m_seen.Remove(Key(spot.Pos));
 				Remember(spot);
 			}
+			FindDoors(doors);
+			var bossAlive = new HashSet<Dungeon>(bosses.Select(b => DungeonAt(b.GetPosition())).Where(d => d != null));
 
 			foreach (Dungeon dungeon in m_dungeons.Values)
 			{
@@ -503,6 +611,12 @@ namespace RestockRegen
 					dungeon.VisitDirty = true;
 					continue;
 				}
+				// A boss dungeon is left alone while its boss lives, or if its place cannot be worked out.
+				Spot bossSpot = default;
+				if (m_boss != 0 && (bossAlive.Contains(dungeon) || !BossSpot(dungeon, out bossSpot)))
+				{
+					continue;
+				}
 				int unvisited = dungeon.LastVisit < 0 ? days : today - dungeon.LastVisit;
 				if (unvisited < days && !now)
 				{
@@ -510,7 +624,7 @@ namespace RestockRegen
 					continue;
 				}
 				var missing = dungeon.Spots.Where(kv => !(standing.TryGetValue(kv.Key, out ZDO z) && IsWhole(z))).ToList();
-				if (missing.Count == 0)
+				if (missing.Count == 0 && m_boss == 0)
 				{
 					continue; // nothing taken
 				}
@@ -556,6 +670,19 @@ namespace RestockRegen
 						WorldObjects.Create(kv.Value.Prefab, kv.Value.Pos, kv.Value.Rot);
 					}
 				}
+				if (m_boss != 0)
+				{
+					rebuilt++;
+					if (!dryRun)
+					{
+						WorldObjects.Create(bossSpot.Prefab, bossSpot.Pos, bossSpot.Rot);
+						ZDO door = ZDOMan.instance.GetZDO(dungeon.Door);
+						if (door != null && K.CloseDoor.Value)
+						{
+							door.Set(ZDOVars.s_state, 0); // Door.UpdateState reads it; 0 is closed
+						}
+					}
+				}
 				result.Regenerated++;
 				result.Replaced += replaced;
 				result.Rebuilt += rebuilt;
@@ -578,16 +705,16 @@ namespace RestockRegen
 			return result;
 		}
 
-		// A player up in the dungeon, or holding any of its objects.
+		// A player up in the dungeon, or holding any of its objects or its door.
 		private bool Occupied(Dungeon dungeon, Dictionary<(int, int, int), ZDO> standing, long server)
 		{
 			if (ZNet.instance.GetPeers().Any(p => DungeonAt(p.GetRefPos()) == dungeon))
 			{
 				return true;
 			}
-			if (WorldObjects.HeldByPlayer(ZDOMan.instance.GetZDO(dungeon.Generator)))
+			if (WorldObjects.HeldByPlayer(ZDOMan.instance.GetZDO(dungeon.Generator)) || WorldObjects.HeldByPlayer(ZDOMan.instance.GetZDO(dungeon.Door)))
 			{
-				return true;
+				return true; // the door: someone is standing at the entrance
 			}
 			foreach (var key in dungeon.Spots.Keys)
 			{

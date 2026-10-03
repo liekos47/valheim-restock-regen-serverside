@@ -25,7 +25,7 @@ namespace RestockRegen
 		// Working name; the final name is still to be chosen. Changing Guid renames the config file.
 		public const string Guid = "liekos47.restockregen";
 		public const string Name = "RestockRegen";
-		public const string Version = "0.15.0";
+		public const string Version = "0.16.0";
 
 		internal static ManualLogSource Log;
 		internal static RestockRegenPlugin Instance;
@@ -78,7 +78,17 @@ namespace RestockRegen
 		internal static ConfigEntry<string> HoleDueText;
 		internal static ConfigEntry<float> HoleEntranceRadius;
 		internal static ConfigEntry<float> HoleRadius;
-		internal static DungeonRegrow MudKind, CrystalKind, BlackCoreKind, MorkhallaKind, HoleKind;
+		internal static ConfigEntry<bool> Citadel;
+		internal static ConfigEntry<int> CitadelDays;
+		internal static ConfigEntry<bool> CitadelDryRun;
+		internal static ConfigEntry<bool> CitadelRegenNow;
+		internal static ConfigEntry<bool> CitadelCloseDoor;
+		internal static ConfigEntry<string> CitadelNotifyText;
+		internal static ConfigEntry<string> CitadelEntranceText;
+		internal static ConfigEntry<string> CitadelDueText;
+		internal static ConfigEntry<float> CitadelEntranceRadius;
+		internal static ConfigEntry<float> CitadelRadius;
+		internal static DungeonRegrow MudKind, CrystalKind, BlackCoreKind, MorkhallaKind, HoleKind, CitadelKind;
 		internal static ConfigEntry<bool> MudPiles;
 		internal static ConfigEntry<int> MudPileDays;
 		internal static ConfigEntry<bool> MudPileDryRun;
@@ -257,6 +267,30 @@ namespace RestockRegen
 			HoleRadius = Config.Bind("TheHole", "HoleRadius", 150f,
 				"Metres from a Hole's centre that count as inside it. Its piles and nests are within about 50 m; the next Hole is over 300 m away.");
 
+			Citadel = Config.Bind("Citadel", "Citadel", true,
+				"Reset a Mistlands infested citadel whose Queen has been killed, once no player has been inside it for CitadelDays in-game days: " +
+				"the Queen is put back in her place, and the seeker eggs and creep blocks the mod has seen are restored. " +
+				"A citadel whose Queen is alive is never touched. Queens killed before the mod was installed come back too.");
+			CitadelDays = Config.Bind("Citadel", "CitadelDays", 30,
+				"In-game days a citadel with a dead Queen must go without anyone inside before it resets. Any visit starts the count again.");
+			CitadelDryRun = Config.Bind("Citadel", "CitadelDryRun", false,
+				"Log which citadels would reset, but create nothing and write nothing. Visits are then tracked in memory only.");
+			CitadelRegenNow = Config.Bind("Citadel", "CitadelRegenNow", false,
+				"One-shot: at the next daily sweep, every citadel with a dead Queen resets whatever its clock says, then this sets itself back to false.");
+			CitadelCloseDoor = Config.Bind("Citadel", "CitadelCloseDoor", true,
+				"Close the citadel's sealed door when it resets, so it takes a Sealbreaker to get in again. The game does not use up the Sealbreaker.");
+			CitadelNotifyText = Config.Bind("Citadel", "CitadelNotifyText", "The spirits will bring the Queen back after {days} without visitors",
+				"Shown to a player inside a citadel whose Queen is dead (needs Notify on). {days} is CitadelDays.");
+			CitadelEntranceText = Config.Bind("Citadel", "CitadelEntranceText", "The spirits will bring the Queen back in {days} if no one enters",
+				"Shown in front of the door of a citadel whose Queen is dead. {days} is what is left of the citadel's clock; going in restarts it.");
+			CitadelDueText = Config.Bind("Citadel", "CitadelDueText", "The spirits will bring the Queen back at the next dawn if no one enters",
+				"Shown in front of the door when the citadel's time is already up. It resets at the next daily sweep with nobody at the door or inside.");
+			CitadelEntranceRadius = Config.Bind("Citadel", "CitadelEntranceRadius", 30f,
+				"Metres, measured flat, around a citadel's sealed door within which a player on the surface gets the entrance message. " +
+				"Standing there does not count as a visit.");
+			CitadelRadius = Config.Bind("Citadel", "CitadelRadius", 150f,
+				"Metres from a citadel's centre that count as inside it. The Queen stands about 22 m from it.");
+
 			DungeonRegrow.All.Clear();
 			MudKind = new DungeonRegrow(new DungeonRegrow.Kind
 			{
@@ -316,6 +350,25 @@ namespace RestockRegen
 				EntranceRadius = HoleEntranceRadius, Radius = HoleRadius,
 			});
 			DungeonRegrow.All.Add(HoleKind);
+			CitadelKind = new DungeonRegrow(new DungeonRegrow.Kind
+			{
+				Label = "the Queen", DungeonLabel = "infested citadel", Generator = "DG_DvergrBoss",
+				Names = new[]
+				{
+					"SeekerEgg", "blackmarble_creep_4x1x1", "blackmarble_creep_4x2x1", "blackmarble_creep_stair",
+					"blackmarble_creep_slope_inverted_1x1x2", "blackmarble_creep_slope_inverted_2x2x1",
+				},
+				Singular = "egg or creep block", Plural = "eggs and creep blocks",
+				SpotsKey = "restockregen_citadelspots", VisitKey = "restockregen_citadelvisit",
+				On = Citadel, Days = CitadelDays, DryRun = CitadelDryRun, RegenNow = CitadelRegenNow,
+				NotifyText = CitadelNotifyText, EntranceText = CitadelEntranceText, DueText = CitadelDueText,
+				EntranceRadius = CitadelEntranceRadius, Radius = CitadelRadius,
+				// Read from the room prefab: the room's origin is at (-300, 18.5, 400), the Queen at
+				// (-298, -5.5, 400), turned 270 degrees.
+				Boss = "SeekerQueen", BossRoom = "dvergr_new_bossroom_ENTRANCE02", Door = "dungeon_queen_door",
+				BossOffset = new Vector3(2f, -24f, 0f), BossYaw = 270f, CloseDoor = CitadelCloseDoor,
+			});
+			DungeonRegrow.All.Add(CitadelKind);
 
 			// A Harmony id of its own per load. On a hot reload (ScriptEngine) the new copy is
 			// patched before the old copy is destroyed, and the old copy's UnpatchSelf would also
@@ -420,7 +473,7 @@ namespace RestockRegen
 			catch (Exception e)
 			{
 				mudFailed = true;
-				Log.LogError($"dungeon regrow (mud piles, crystals, black cores, Morkhalla, the Hole) failed and is off until restart: {e}");
+				Log.LogError($"dungeon regrow (mud piles, crystals, black cores, Morkhalla, the Hole, the Queen) failed and is off until restart: {e}");
 			}
 		}
 

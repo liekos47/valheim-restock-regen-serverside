@@ -20,6 +20,7 @@ namespace RestockRegen
 			/kick restock-regen-cores
 			/kick restock-regen-morkhalla
 			/kick restock-regen-hole
+			/kick restock-regen-citadel
 			/kick restock-regen-flametal
 			/kick restock-get:MudPileDays
 			/kick restock-set:MudPileDays=20
@@ -107,6 +108,11 @@ namespace RestockRegen
 				RestockRegenPlugin.Instance.RegenDungeonsNow(RestockRegenPlugin.HoleKind);
 				return new[] { "RestockRegen: regenerating every free Hole's nests and trash piles now (details in the server log)" };
 			}
+			if (lower == "regen-citadel")
+			{
+				RestockRegenPlugin.Instance.RegenDungeonsNow(RestockRegenPlugin.CitadelKind);
+				return new[] { "RestockRegen: resetting every free infested citadel whose Queen is dead now (details in the server log)" };
+			}
 			if (lower == "regen-morkhalla")
 			{
 				RestockRegenPlugin.Instance.RegenDungeonsNow(RestockRegenPlugin.MorkhallaKind);
@@ -122,7 +128,7 @@ namespace RestockRegen
 				string kind = lower.Substring("regen-".Length);
 				return RestockRegenPlugin.Instance.RegrowNow(kind)
 					? new[] { $"RestockRegen: restoring every damaged or gone {Regrow.Find(kind).Label} spot with nobody near and no build on it, now (details in the server log)" }
-					: new[] { "RestockRegen: use restock-regen (crypts), restock-regen-crystals, restock-regen-cores, restock-regen-morkhalla, restock-regen-hole, restock-regen-armor, restock-regen-obsidian or restock-regen-flametal" };
+					: new[] { "RestockRegen: use restock-regen (crypts), restock-regen-crystals, restock-regen-cores, restock-regen-morkhalla, restock-regen-hole, restock-regen-citadel, restock-regen-armor, restock-regen-obsidian or restock-regen-flametal" };
 			}
 			if (lower == "regen")
 			{
@@ -150,7 +156,7 @@ namespace RestockRegen
 			var help = new[]
 			{
 				"RestockRegen commands (in chat: /kick <command>, in the F5 console: kick <command>):",
-				"  restock-status   restock-regen   restock-regen-crystals   restock-regen-cores   restock-regen-morkhalla   restock-regen-hole   restock-regen-armor   restock-regen-obsidian   restock-regen-flametal   restock-reload   restock-get:Setting   restock-set:Setting=value",
+				"  restock-status   restock-regen   restock-regen-crystals   restock-regen-cores   restock-regen-morkhalla   restock-regen-hole   restock-regen-citadel   restock-regen-armor   restock-regen-obsidian   restock-regen-flametal   restock-reload   restock-get:Setting   restock-set:Setting=value",
 				"  In text settings type _ for a space. Settings: " + string.Join(", ", RestockRegenPlugin.Instance.Config.Keys.Select(k => k.Key)),
 			};
 			return help;

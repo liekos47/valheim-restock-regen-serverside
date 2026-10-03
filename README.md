@@ -8,6 +8,8 @@ over time:
   infested mines, the **gems and coin piles** in the Deep North's Morkhalla dungeon, and the **nests
   and trash piles** in the Deep North's Holes come back after the dungeon has gone 30 days without
   visitors.
+- **The Queen** comes back to a Mistlands infested citadel 30 days after the last visit, once she
+  has been killed, and its sealed door closes again.
 - **Ancient armor** (the giant's helmets and swords in the Mistlands), **obsidian** (Mountains) and
   **flametal** (the spires in the Ashlands' lava) come back where nobody has been for 30 days.
 
@@ -27,6 +29,7 @@ they see arrives through the game's own messages.
 - [Black cores](#black-cores)
 - [Morkhalla gems and coin piles](#morkhalla-gems-and-coin-piles)
 - [The Hole](#the-hole)
+- [The Queen's citadel](#the-queens-citadel)
 - [Ancient armor, obsidian and flametal](#ancient-armor-obsidian-and-flametal)
 - [Admin commands](#admin-commands)
 - [Settings](#settings)
@@ -53,6 +56,8 @@ they see arrives through the game's own messages.
 | Going inside it | Middle of the screen | The spirits will restore the gems and coin piles after 30 days without visitors |
 | Arriving at the entrance of a Hole with broken nests or piles | Middle of the screen | The spirits will restore the nests and trash piles in 12 days if no one enters |
 | Going inside that Hole | Middle of the screen | The spirits will restore the nests and trash piles after 30 days without visitors |
+| Standing in front of the door of a citadel whose Queen has been killed | Middle of the screen | The spirits will bring the Queen back in 12 days if no one enters |
+| Going inside that citadel | Middle of the screen | The spirits will bring the Queen back after 30 days without visitors |
 | Entering the Mountains | Middle of the screen | The spirits will restore obsidian after 30 days without visitors |
 | Entering the Ashlands | Middle of the screen | The spirits will restore flametal after 30 days without visitors |
 
@@ -109,7 +114,8 @@ they see arrives through the game's own messages.
 - A mine with a player in it, or next to it, waits until they leave.
 - Players get the same two messages as at a crypt: the days left at the entrance, and the full 30
   days once inside.
-- The Queen's own lair is a separate dungeon and is not touched.
+- The Queen's own lair is a separate dungeon with its own rule: see
+  [The Queen's citadel](#the-queens-citadel).
 
 ## Morkhalla gems and coin piles
 
@@ -150,6 +156,34 @@ the game's own data:
 - A Hole with a player in it, or next to it, waits until they leave.
 - Players get the same two messages as at a crypt: the days left at the entrance, and the full 30
   days once inside.
+
+## The Queen's citadel
+
+The Mistlands' infested citadel, behind the sealed door. What the normal game does with each thing
+in it, read from the game's own data:
+
+| Thing | In the normal game | With this mod |
+| --- | --- | --- |
+| The Queen (`SeekerQueen`) | She is placed in her room once, when the citadel is generated. Killed, she never comes back by herself. | **Put back** in her place |
+| The sealed door (`dungeon_queen_door`) | Opens with a Sealbreaker, which is not used up. Stays open until someone closes it. | **Closed** again, so it takes a Sealbreaker to get in |
+| Seeker eggs (`SeekerEgg`, 277 in her room) | Deleted when they hatch or are broken | **Restored**, if the mod has seen them |
+| Creep blocks (`blackmarble_creep_4x2x1` and four more) | Deleted when broken | **Restored**, if the mod has seen them |
+| The Queen's seeker spawners (`TriggerSpawner_Seeker`) | They stay in place after the fight | Left to the game |
+
+- A citadel is reset **only after its Queen has been killed**. While she is alive nothing in it is
+  touched, however long it stands empty.
+- Once she is dead, the citadel resets after nobody has been **inside** it for 30 in-game days.
+  Any visit starts the count again. Standing in front of the door does not count.
+- A Queen killed before the mod was installed comes back too: her place is worked out from the
+  citadel itself, not remembered. For those citadels the 30 days start when the mod first runs.
+- Eggs and creep blocks are remembered from the first time the mod sees them. Ones hatched or
+  broken before the mod was installed left nothing behind and cannot come back.
+- A citadel with a player inside it, or in front of its door, waits until they leave.
+- A player in front of the door of a citadel whose Queen is dead is told how many days are left,
+  and again, with the full 30 days, on going inside.
+- The Queen gives her normal drops again each time. The game's own altar in her room still works
+  as before.
+- `CitadelCloseDoor` set to `false` leaves the door as the players left it.
 
 ## Ancient armor, obsidian and flametal
 
@@ -211,6 +245,7 @@ single word with no spaces.
 | `/kick restock-regen-cores` | Regenerates every infested mine with taken black cores **now**. |
 | `/kick restock-regen-morkhalla` | Regenerates the Morkhalla dungeon's gems and coin piles **now**, if nobody is inside. |
 | `/kick restock-regen-hole` | Regenerates every Hole's nests and trash piles **now**, except Holes with a player inside. |
+| `/kick restock-regen-citadel` | Resets every infested citadel whose Queen is dead **now**, except citadels with a player inside or at the door. |
 | `/kick restock-reload` | Reloads the mod from `BepInEx/scripts` without restarting the server ([hot reload](#hot-reload)). `/kick reload-restock-regen` does the same. |
 
 ### Changing settings with restock-set
@@ -347,6 +382,23 @@ every 30 seconds, and can also be changed in game with `/kick restock-set`.
 
 `VisitCheckSeconds` under MudPiles sets how often Holes are checked too.
 
+### Citadel
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `Citadel` | `true` | Reset an infested citadel whose Queen has been killed: the Queen, the door, the eggs and the creep blocks. |
+| `CitadelDays` | `30` | In-game days without anyone inside, after the Queen's death, before it resets. |
+| `CitadelDryRun` | `false` | Log which citadels would reset, change nothing. |
+| `CitadelRegenNow` | `false` | One-shot: every citadel with a dead Queen resets at the next daily check, then this switches itself off. `/kick restock-regen-citadel` does it immediately instead. |
+| `CitadelCloseDoor` | `true` | Close the sealed door when the citadel resets. |
+| `CitadelEntranceText` | `The spirits will bring the Queen back in {days} if no one enters` | In front of the door, with the days left. |
+| `CitadelNotifyText` | `The spirits will bring the Queen back after {days} without visitors` | Inside the citadel. |
+| `CitadelDueText` | `The spirits will bring the Queen back at the next dawn if no one enters` | In front of the door when the time is up. |
+| `CitadelEntranceRadius` | `30` | Metres around the sealed door where a player on the surface gets the entrance message. |
+| `CitadelRadius` | `150` | Metres from a citadel's centre that count as inside it. |
+
+`VisitCheckSeconds` under MudPiles sets how often citadels are checked too.
+
 ### AncientArmor
 
 | Setting | Default | What it does |
@@ -428,6 +480,8 @@ dedicated server. Put `RestockRegen.dll` in `BepInEx/plugins/`, or in `BepInEx/s
   (`restockregen_morkvisit`).
 - On each Hole: its nest and trash pile spots (`restockregen_holespots`) and last visit
   (`restockregen_holevisit`).
+- On each infested citadel: its egg and creep block spots (`restockregen_citadelspots`) and last
+  visit (`restockregen_citadelvisit`).
 - Beside the world save: `worlds_local/<world>.restockregen.txt`, the ancient armor, obsidian and
   flametal spots, and when each area was last visited. Keep it with the world when you back it up or move it.
 
