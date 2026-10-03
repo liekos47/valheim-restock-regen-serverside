@@ -134,3 +134,7 @@ DropOnDestroyed.OnDestroyed
 field:Pickable.m_respawnTimeMinutes
 field:Destructible.m_spawnWhenDestroyed
 field:DropOnDestroyed.m_dropWhenDestroyed
+# 0.15.0 the Hole: trash piles and spawner nests (Destructible + DropOnDestroyed, SpawnArea)
+SpawnArea.UpdateSpawn
+field:SpawnArea.m_prefabs
+field:SpawnArea.m_maxNear

@@ -25,7 +25,7 @@ namespace RestockRegen
 		// Working name; the final name is still to be chosen. Changing Guid renames the config file.
 		public const string Guid = "liekos47.restockregen";
 		public const string Name = "RestockRegen";
-		public const string Version = "0.14.0";
+		public const string Version = "0.15.0";
 
 		internal static ManualLogSource Log;
 		internal static RestockRegenPlugin Instance;
@@ -69,7 +69,16 @@ namespace RestockRegen
 		internal static ConfigEntry<string> MorkhallaDueText;
 		internal static ConfigEntry<float> MorkhallaEntranceRadius;
 		internal static ConfigEntry<float> MorkhallaRadius;
-		internal static DungeonRegrow MudKind, CrystalKind, BlackCoreKind, MorkhallaKind;
+		internal static ConfigEntry<bool> TheHole;
+		internal static ConfigEntry<int> HoleDays;
+		internal static ConfigEntry<bool> HoleDryRun;
+		internal static ConfigEntry<bool> HoleRegenNow;
+		internal static ConfigEntry<string> HoleNotifyText;
+		internal static ConfigEntry<string> HoleEntranceText;
+		internal static ConfigEntry<string> HoleDueText;
+		internal static ConfigEntry<float> HoleEntranceRadius;
+		internal static ConfigEntry<float> HoleRadius;
+		internal static DungeonRegrow MudKind, CrystalKind, BlackCoreKind, MorkhallaKind, HoleKind;
 		internal static ConfigEntry<bool> MudPiles;
 		internal static ConfigEntry<int> MudPileDays;
 		internal static ConfigEntry<bool> MudPileDryRun;
@@ -227,6 +236,27 @@ namespace RestockRegen
 			MorkhallaRadius = Config.Bind("Morkhalla", "MorkhallaRadius", 200f,
 				"Metres from the dungeon's centre that count as inside it.");
 
+			TheHole = Config.Bind("TheHole", "TheHole", true,
+				"Restore the trash piles and the spawner nests in the Deep North's Holes once no player has been inside a Hole for HoleDays in-game days. " +
+				"Only ones the mod has seen can come back: one broken before it was installed left no trace. Glow worms are left to the game, which respawns them itself; roots are not restored.");
+			HoleDays = Config.Bind("TheHole", "HoleDays", 30,
+				"In-game days a Hole must go without anyone inside before its trash piles and nests come back. Any visit starts the count again.");
+			HoleDryRun = Config.Bind("TheHole", "HoleDryRun", false,
+				"Log which Holes would regenerate, but create nothing and write nothing. Visits are then tracked in memory only.");
+			HoleRegenNow = Config.Bind("TheHole", "HoleRegenNow", false,
+				"One-shot: at the next daily sweep, every Hole with broken piles or nests regenerates whatever its clock says, then this sets itself back to false.");
+			HoleNotifyText = Config.Bind("TheHole", "HoleNotifyText", "The spirits will restore the nests and trash piles after {days} without visitors",
+				"Shown to a player inside a Hole with broken piles or nests (needs Notify on). {days} is HoleDays; {mined} is how many are missing.");
+			HoleEntranceText = Config.Bind("TheHole", "HoleEntranceText", "The spirits will restore the nests and trash piles in {days} if no one enters",
+				"Shown at the entrance of a Hole with broken piles or nests. {days} is what is left of the Hole's clock; going in restarts it.");
+			HoleDueText = Config.Bind("TheHole", "HoleDueText", "The spirits will restore the nests and trash piles at the next dawn if no one enters",
+				"Shown at the entrance when the Hole's time is already up.");
+			HoleEntranceRadius = Config.Bind("TheHole", "HoleEntranceRadius", 40f,
+				"Metres, measured flat, around a Hole's centre within which a player on the surface gets the entrance message. " +
+				"A Hole's surface location stands about 20 m from its interior's centre. Standing there does not count as a visit.");
+			HoleRadius = Config.Bind("TheHole", "HoleRadius", 150f,
+				"Metres from a Hole's centre that count as inside it. Its piles and nests are within about 50 m; the next Hole is over 300 m away.");
+
 			DungeonRegrow.All.Clear();
 			MudKind = new DungeonRegrow(new DungeonRegrow.Kind
 			{
@@ -275,6 +305,17 @@ namespace RestockRegen
 			DungeonRegrow.All.Add(CrystalKind);
 			DungeonRegrow.All.Add(BlackCoreKind);
 			DungeonRegrow.All.Add(MorkhallaKind);
+			HoleKind = new DungeonRegrow(new DungeonRegrow.Kind
+			{
+				Label = "Hole nests and trash piles", DungeonLabel = "Hole", Generator = "DG_Hole",
+				Names = new[] { "elaking_trashpile", "Spawner_Hole", "Spawner_Hole_double" },
+				Singular = "nest or trash pile", Plural = "nests and trash piles",
+				SpotsKey = "restockregen_holespots", VisitKey = "restockregen_holevisit",
+				On = TheHole, Days = HoleDays, DryRun = HoleDryRun, RegenNow = HoleRegenNow,
+				NotifyText = HoleNotifyText, EntranceText = HoleEntranceText, DueText = HoleDueText,
+				EntranceRadius = HoleEntranceRadius, Radius = HoleRadius,
+			});
+			DungeonRegrow.All.Add(HoleKind);
 
 			// A Harmony id of its own per load. On a hot reload (ScriptEngine) the new copy is
 			// patched before the old copy is destroyed, and the old copy's UnpatchSelf would also
@@ -379,7 +420,7 @@ namespace RestockRegen
 			catch (Exception e)
 			{
 				mudFailed = true;
-				Log.LogError($"dungeon regrow (mud piles, crystals, black cores, Morkhalla) failed and is off until restart: {e}");
+				Log.LogError($"dungeon regrow (mud piles, crystals, black cores, Morkhalla, the Hole) failed and is off until restart: {e}");
 			}
 		}
 

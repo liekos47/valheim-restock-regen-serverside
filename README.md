@@ -5,8 +5,9 @@ over time:
 
 - **Loot chests** refill 30 in-game days after they are first opened.
 - **Muddy scrap piles** in sunken crypts, **crystals** in frost caves, **black cores** in
-  infested mines, and the **gems and coin piles** in the Deep North's Morkhalla dungeon come back
-  after the dungeon has gone 30 days without visitors.
+  infested mines, the **gems and coin piles** in the Deep North's Morkhalla dungeon, and the **nests
+  and trash piles** in the Deep North's Holes come back after the dungeon has gone 30 days without
+  visitors.
 - **Ancient armor** (the giant's helmets and swords in the Mistlands), **obsidian** (Mountains) and
   **flametal** (the spires in the Ashlands' lava) come back where nobody has been for 30 days.
 
@@ -25,6 +26,7 @@ they see arrives through the game's own messages.
 - [Frost cave crystals](#frost-cave-crystals)
 - [Black cores](#black-cores)
 - [Morkhalla gems and coin piles](#morkhalla-gems-and-coin-piles)
+- [The Hole](#the-hole)
 - [Ancient armor, obsidian and flametal](#ancient-armor-obsidian-and-flametal)
 - [Admin commands](#admin-commands)
 - [Settings](#settings)
@@ -49,6 +51,8 @@ they see arrives through the game's own messages.
 | Going inside that mine | Middle of the screen | The spirits will restore the black cores after 30 days without visitors |
 | Arriving at the entrance of the Morkhalla dungeon with gems or piles missing | Middle of the screen | The spirits will restore the gems and coin piles in 12 days if no one enters |
 | Going inside it | Middle of the screen | The spirits will restore the gems and coin piles after 30 days without visitors |
+| Arriving at the entrance of a Hole with broken nests or piles | Middle of the screen | The spirits will restore the nests and trash piles in 12 days if no one enters |
+| Going inside that Hole | Middle of the screen | The spirits will restore the nests and trash piles after 30 days without visitors |
 | Entering the Mountains | Middle of the screen | The spirits will restore obsidian after 30 days without visitors |
 | Entering the Ashlands | Middle of the screen | The spirits will restore flametal after 30 days without visitors |
 
@@ -126,6 +130,27 @@ count):
 - Players get the same two messages as at a crypt: the days left at the entrance, and the full 30
   days once inside.
 
+## The Hole
+
+The Deep North's underground Holes. What the normal game does with each thing in them, read from
+the game's own data:
+
+| Thing | Gives | Comes back in the normal game? | With this mod |
+| --- | --- | --- | --- |
+| Glow worms (`Pickable_GlowWorm`) | Glow worm | Yes, about 4 hours after being picked | Left to the game |
+| Creatures (Elaking) | Their drops | Yes, while their nest stands: one every 10 seconds, up to 5 nearby | Left to the game |
+| Trash piles (`elaking_trashpile`) | Frostwood, iron scrap, silver necklaces, mold weapons | No, deleted when broken | **Restored** |
+| Spawner nests (`Spawner_Hole`, `Spawner_Hole_double`) | The same loot when broken | No, deleted when broken, and its creatures stop coming | **Restored**, creatures included |
+| Roots (`HoleRock_root1` and others) | Frostwood, half the time | No, deleted when chopped | Not restored: many block passages |
+
+- A Hole's trash piles and nests come back once nobody has been **inside** it for 30 in-game days.
+  Any visit starts the count again, and standing at the entrance does not count.
+- They are remembered from the first time the mod sees them. One broken before the mod was
+  installed left nothing behind and cannot come back.
+- A Hole with a player in it, or next to it, waits until they leave.
+- Players get the same two messages as at a crypt: the days left at the entrance, and the full 30
+  days once inside.
+
 ## Ancient armor, obsidian and flametal
 
 Three kinds of world object that work the same way, each with its own settings:
@@ -185,6 +210,7 @@ single word with no spaces.
 | `/kick restock-regen-crystals` | Regenerates every frost cave with picked crystals **now**, like `restock-regen` does for crypts. |
 | `/kick restock-regen-cores` | Regenerates every infested mine with taken black cores **now**. |
 | `/kick restock-regen-morkhalla` | Regenerates the Morkhalla dungeon's gems and coin piles **now**, if nobody is inside. |
+| `/kick restock-regen-hole` | Regenerates every Hole's nests and trash piles **now**, except Holes with a player inside. |
 | `/kick restock-reload` | Reloads the mod from `BepInEx/scripts` without restarting the server ([hot reload](#hot-reload)). `/kick reload-restock-regen` does the same. |
 
 ### Changing settings with restock-set
@@ -305,6 +331,22 @@ every 30 seconds, and can also be changed in game with `/kick restock-set`.
 
 `VisitCheckSeconds` under MudPiles sets how often this dungeon is checked too.
 
+### TheHole
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `TheHole` | `true` | Restore the trash piles and spawner nests in the Deep North's Holes. |
+| `HoleDays` | `30` | In-game days without anyone inside before they come back. |
+| `HoleDryRun` | `false` | Log which Holes would regenerate, change nothing. |
+| `HoleRegenNow` | `false` | One-shot: every Hole with broken piles or nests regenerates at the next daily check, then this switches itself off. `/kick restock-regen-hole` does it immediately instead. |
+| `HoleEntranceText` | `The spirits will restore the nests and trash piles in {days} if no one enters` | At a Hole's entrance, with the days left. |
+| `HoleNotifyText` | `The spirits will restore the nests and trash piles after {days} without visitors` | Inside a Hole. |
+| `HoleDueText` | `The spirits will restore the nests and trash piles at the next dawn if no one enters` | At the entrance when the time is up. |
+| `HoleEntranceRadius` | `40` | Metres around a Hole's centre where a player on the surface gets the entrance message. |
+| `HoleRadius` | `150` | Metres from a Hole's centre that count as inside it. |
+
+`VisitCheckSeconds` under MudPiles sets how often Holes are checked too.
+
 ### AncientArmor
 
 | Setting | Default | What it does |
@@ -384,6 +426,8 @@ dedicated server. Put `RestockRegen.dll` in `BepInEx/plugins/`, or in `BepInEx/s
   (`restockregen_minevisit`).
 - On the Morkhalla dungeon: its gem and pile spots (`restockregen_morkspots`) and last visit
   (`restockregen_morkvisit`).
+- On each Hole: its nest and trash pile spots (`restockregen_holespots`) and last visit
+  (`restockregen_holevisit`).
 - Beside the world save: `worlds_local/<world>.restockregen.txt`, the ancient armor, obsidian and
   flametal spots, and when each area was last visited. Keep it with the world when you back it up or move it.
 

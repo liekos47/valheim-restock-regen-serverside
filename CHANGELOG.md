@@ -1,3 +1,14 @@
+## 0.15.0
+
+- The Deep North's Holes get their trash piles (`elaking_trashpile`) and spawner nests
+  (`Spawner_Hole`, `Spawner_Hole_double`) back once nobody has been inside for 30 in-game days.
+  Both are deleted when broken and the game never restores them; restoring a nest also brings its
+  creatures back. `/kick restock-regen-hole` and `[TheHole]` settings.
+- Read from the game's prefab data and checked against the owner's saves: glow worms respawn by
+  themselves after 240 minutes (27 already had), so they are left to the game. Between 2026-09-25
+  and 09-30, 9 of 75 trash piles, 4 of 19 double nests and 113 roots had been broken and stayed
+  gone. Roots are not restored, on the owner's decision: many block passages.
+
 ## 0.14.0
 
 - The Deep North's Morkhalla dungeon gets its gems and coin piles back once nobody has been inside

@@ -34,6 +34,16 @@ namespace RestockRegen
 		    gemstone), deleted by PickableItem.RPC_Pick.
 		  The last two are put back from their remembered spots.
 
+		- Trash piles and spawner nests, the Deep North's Hole (DG_Hole), from prefab data:
+		  - elaking_trashpile: a Destructible with 1 health whose DropOnDestroyed gives frostwood,
+		    iron scrap, silver necklaces and mold weapons. Deleted when broken.
+		  - Spawner_Hole and Spawner_Hole_double: a SpawnArea (Elaking every 10 s, up to 5 near) on a
+		    Destructible with 300 health and the same drops. Deleted when broken, and its creatures
+		    stop coming.
+		  Both are put back from their remembered spots. The Hole's glow worms are left to the game,
+		  which respawns them after 240 minutes, and its roots are left alone on the owner's
+		  decision: many of them block passages.
+
 		Where nothing in the world says the thing was ever there, every spot - position,
 		rotation and whole prefab - is remembered from the moment it is seen, whole or damaged, and
 		stored on the dungeon's own generator ZDO so it survives restarts. Things taken before the mod
