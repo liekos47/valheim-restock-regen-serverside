@@ -4,8 +4,9 @@ A server-side mod for Valheim dedicated servers that brings the world's one-shot
 over time:
 
 - **Loot chests** refill 30 in-game days after they are first opened.
-- **Muddy scrap piles** in sunken crypts, **crystals** in frost caves and **black cores** in
-  infested mines come back after the dungeon has gone 30 days without visitors.
+- **Muddy scrap piles** in sunken crypts, **crystals** in frost caves, **black cores** in
+  infested mines, and the **gems and coin piles** in the Deep North's Morkhalla dungeon come back
+  after the dungeon has gone 30 days without visitors.
 - **Ancient armor** (the giant's helmets and swords in the Mistlands), **obsidian** (Mountains) and
   **flametal** (the spires in the Ashlands' lava) come back where nobody has been for 30 days.
 
@@ -23,6 +24,7 @@ they see arrives through the game's own messages.
 - [Muddy scrap piles](#muddy-scrap-piles)
 - [Frost cave crystals](#frost-cave-crystals)
 - [Black cores](#black-cores)
+- [Morkhalla gems and coin piles](#morkhalla-gems-and-coin-piles)
 - [Ancient armor, obsidian and flametal](#ancient-armor-obsidian-and-flametal)
 - [Admin commands](#admin-commands)
 - [Settings](#settings)
@@ -45,6 +47,8 @@ they see arrives through the game's own messages.
 | Entering the Mistlands | Middle of the screen | The spirits will restore ancient armor after 30 days without visitors |
 | Arriving at the entrance of an infested mine with taken black cores | Middle of the screen | The spirits will restore the black cores in 12 days if no one enters |
 | Going inside that mine | Middle of the screen | The spirits will restore the black cores after 30 days without visitors |
+| Arriving at the entrance of the Morkhalla dungeon with gems or piles missing | Middle of the screen | The spirits will restore the gems and coin piles in 12 days if no one enters |
+| Going inside it | Middle of the screen | The spirits will restore the gems and coin piles after 30 days without visitors |
 | Entering the Mountains | Middle of the screen | The spirits will restore obsidian after 30 days without visitors |
 | Entering the Ashlands | Middle of the screen | The spirits will restore flametal after 30 days without visitors |
 
@@ -103,6 +107,25 @@ they see arrives through the game's own messages.
   days once inside.
 - The Queen's own lair is a separate dungeon and is not touched.
 
+## Morkhalla gems and coin piles
+
+The dungeon inside the Deep North's castle. Three things in it are restored once nobody has been
+**inside** for 30 in-game days (any visit starts the count again; standing at the entrance does not
+count):
+
+| What | Objects | What the game does when you take it | How it comes back |
+| --- | --- | --- | --- |
+| Gems in the statue eyes | `Morkhalla_Eye1` to `Eye4` (ancient gemstones), `Morkhalla_Eye5_gemstone` to `Eye7_gemstone` (ordinary gemstones) | The eye stays, marked as taken, for good | The mark is cleared. Gems taken before the mod was installed come back too. |
+| Coin piles | `Morkhalla_Rubble1` to `Rubble4`, the rubble that drops ancient coins and grausten when broken | The pile is destroyed and deleted | A new pile is put back in the same spot |
+| Treasure piles | `Pickable_MorkHallaTreasure` (one random ancient gemstone) | Deleted when taken | A new one is put back in the same spot |
+
+- Piles are remembered from the first time the mod sees them. One broken or taken before the mod
+  was installed left nothing behind and cannot come back.
+- The dungeon's chests are loot chests and refill under the [loot chest](#loot-chests) rules.
+- Only the dungeon is covered. The treasure piles lying on the surface around the castle are not.
+- Players get the same two messages as at a crypt: the days left at the entrance, and the full 30
+  days once inside.
+
 ## Ancient armor, obsidian and flametal
 
 Three kinds of world object that work the same way, each with its own settings:
@@ -113,7 +136,7 @@ Three kinds of world object that work the same way, each with its own settings:
 | Obsidian | Mountains | Obsidian deposits (`MineRock_Obsidian`) |
 | Flametal | Ashlands | The flametal spires that rise out of the lava (`LeviathanLava`) |
 
-- A partly mined or missing object comes back once no player has been within 100 m of its spot for
+- A mined or missing object comes back once no player has been within 100 m of its spot for
   30 in-game days. Any visit starts the count again for that area.
 - **Nothing is put back where a player has built.** If anything a player built stands within 8 m of
   the spot, it stays gone and the spot is checked again every day.
@@ -121,8 +144,9 @@ Three kinds of world object that work the same way, each with its own settings:
   or taken before the mod was installed cannot come back.
 - Players entering the Mistlands, the Mountains or the Ashlands are told about it, at most once
   every 10 minutes.
-- A flametal spire that has been mined sinks into the lava and is gone for good in the normal game.
-  Here a spire with any chunk mined, or one that has sunk, comes back whole.
+- In the normal game a mined flametal spire stays as an empty husk for good, and now and then one
+  sinks into the lava and is gone. Here a spire with any chunk mined, or one that has sunk, comes
+  back whole.
 
 Dragon eggs are not handled by the mod because they do not need to be: the game brings taken eggs
 back by itself.
@@ -160,6 +184,7 @@ single word with no spaces.
 | `/kick restock-regen-flametal` | The same for flametal spires. |
 | `/kick restock-regen-crystals` | Regenerates every frost cave with picked crystals **now**, like `restock-regen` does for crypts. |
 | `/kick restock-regen-cores` | Regenerates every infested mine with taken black cores **now**. |
+| `/kick restock-regen-morkhalla` | Regenerates the Morkhalla dungeon's gems and coin piles **now**, if nobody is inside. |
 | `/kick restock-reload` | Reloads the mod from `BepInEx/scripts` without restarting the server ([hot reload](#hot-reload)). `/kick reload-restock-regen` does the same. |
 
 ### Changing settings with restock-set
@@ -264,6 +289,22 @@ every 30 seconds, and can also be changed in game with `/kick restock-set`.
 
 `VisitCheckSeconds` under MudPiles sets how often infested mines are checked too.
 
+### Morkhalla
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `Morkhalla` | `true` | Restore the gems and coin piles in the Deep North's Morkhalla dungeon. |
+| `MorkhallaDays` | `30` | In-game days without anyone inside before they come back. |
+| `MorkhallaDryRun` | `false` | Log what would be restored, change nothing. |
+| `MorkhallaRegenNow` | `false` | One-shot: the dungeon regenerates at the next daily check, then this switches itself off. `/kick restock-regen-morkhalla` does it immediately instead. |
+| `MorkhallaEntranceText` | `The spirits will restore the gems and coin piles in {days} if no one enters` | At the dungeon's entrance, with the days left. |
+| `MorkhallaNotifyText` | `The spirits will restore the gems and coin piles after {days} without visitors` | Inside the dungeon. |
+| `MorkhallaDueText` | `The spirits will restore the gems and coin piles at the next dawn if no one enters` | At the entrance when the time is up. |
+| `MorkhallaEntranceRadius` | `50` | Metres around the dungeon's centre where a player on the surface gets the entrance message. |
+| `MorkhallaRadius` | `200` | Metres from the dungeon's centre that count as inside it. |
+
+`VisitCheckSeconds` under MudPiles sets how often this dungeon is checked too.
+
 ### AncientArmor
 
 | Setting | Default | What it does |
@@ -341,6 +382,8 @@ dedicated server. Put `RestockRegen.dll` in `BepInEx/plugins/`, or in `BepInEx/s
   (`restockregen_cavevisit`).
 - On each infested mine: its black core spots (`restockregen_corespots`) and last visit
   (`restockregen_minevisit`).
+- On the Morkhalla dungeon: its gem and pile spots (`restockregen_morkspots`) and last visit
+  (`restockregen_morkvisit`).
 - Beside the world save: `worlds_local/<world>.restockregen.txt`, the ancient armor, obsidian and
   flametal spots, and when each area was last visited. Keep it with the world when you back it up or move it.
 

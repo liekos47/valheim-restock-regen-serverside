@@ -126,3 +126,11 @@ field:Leviathan.m_hitReactionChance
 field:Leviathan.m_mineRock
 field:MineRock.m_removeWhenDestroyed
 field:ZDOVars.s_dead
+# 0.14.0 Morkhalla dungeon: eyes (Pickable), coin piles (Destructible), treasure (PickableItem)
+PickableItem.RPC_Pick
+PickableItem.SetupRandomPrefab
+Destructible.Destroy
+DropOnDestroyed.OnDestroyed
+field:Pickable.m_respawnTimeMinutes
+field:Destructible.m_spawnWhenDestroyed
+field:DropOnDestroyed.m_dropWhenDestroyed

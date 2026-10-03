@@ -22,7 +22,19 @@ namespace RestockRegen
 		  the owner's world on 2026-09-30). Restoring it is clearing that flag, which Pickable.Awake
 		  reads the next time a client loads it; nothing is created or removed.
 
-		For the first two nothing in the world says the thing was ever there, so every spot - position,
+		- Gems and coin piles, the Deep North's Morkhalla dungeon (DG_MorkHalla), read from the
+		  game's prefab data, not guessed:
+		  - the statue eyes, Morkhalla_Eye1..4 (ancient gemstones) and Eye5..7_gemstone (ordinary
+		    gemstones): a Pickable with m_hideWhenPicked set and no respawn time, so like the black
+		    core stand it stays, marked s_picked, and is restored by clearing the mark;
+		  - the coin piles, Morkhalla_Rubble1..4: a Destructible whose DropOnDestroyed gives 1-5 of
+		    ancient coins and grausten. Destroying one deletes it; what is left,
+		    Morkhalla_Rubble_Destroyed, is not persistent;
+		  - the treasure piles, Pickable_MorkHallaTreasure: a PickableItem (one random ancient
+		    gemstone), deleted by PickableItem.RPC_Pick.
+		  The last two are put back from their remembered spots.
+
+		Where nothing in the world says the thing was ever there, every spot - position,
 		rotation and whole prefab - is remembered from the moment it is seen, whole or damaged, and
 		stored on the dungeon's own generator ZDO so it survives restarts. Things taken before the mod
 		saw them cannot be brought back.

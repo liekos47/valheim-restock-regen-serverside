@@ -25,7 +25,7 @@ namespace RestockRegen
 		// Working name; the final name is still to be chosen. Changing Guid renames the config file.
 		public const string Guid = "liekos47.restockregen";
 		public const string Name = "RestockRegen";
-		public const string Version = "0.13.0";
+		public const string Version = "0.14.0";
 
 		internal static ManualLogSource Log;
 		internal static RestockRegenPlugin Instance;
@@ -60,7 +60,16 @@ namespace RestockRegen
 		internal static ConfigEntry<string> BlackCoreDueText;
 		internal static ConfigEntry<float> MineEntranceRadius;
 		internal static ConfigEntry<float> MineRadius;
-		internal static DungeonRegrow MudKind, CrystalKind, BlackCoreKind;
+		internal static ConfigEntry<bool> Morkhalla;
+		internal static ConfigEntry<int> MorkhallaDays;
+		internal static ConfigEntry<bool> MorkhallaDryRun;
+		internal static ConfigEntry<bool> MorkhallaRegenNow;
+		internal static ConfigEntry<string> MorkhallaNotifyText;
+		internal static ConfigEntry<string> MorkhallaEntranceText;
+		internal static ConfigEntry<string> MorkhallaDueText;
+		internal static ConfigEntry<float> MorkhallaEntranceRadius;
+		internal static ConfigEntry<float> MorkhallaRadius;
+		internal static DungeonRegrow MudKind, CrystalKind, BlackCoreKind, MorkhallaKind;
 		internal static ConfigEntry<bool> MudPiles;
 		internal static ConfigEntry<int> MudPileDays;
 		internal static ConfigEntry<bool> MudPileDryRun;
@@ -196,6 +205,28 @@ namespace RestockRegen
 			MineRadius = Config.Bind("InfestedMines", "MineRadius", 200f,
 				"Metres from an infested mine's centre that count as inside it.");
 
+			Morkhalla = Config.Bind("Morkhalla", "Morkhalla", true,
+				"Restore the gems and coin piles in the Deep North's Morkhalla dungeon once no player has been inside it for MorkhallaDays in-game days: " +
+				"the gemstones in the statue eyes, the rubble piles that drop ancient coins, and the treasure piles. " +
+				"Eyes whose gem was taken before the mod was installed come back too; piles broken or taken before then cannot.");
+			MorkhallaDays = Config.Bind("Morkhalla", "MorkhallaDays", 30,
+				"In-game days the dungeon must go without anyone inside before its gems and coin piles come back. Any visit starts the count again.");
+			MorkhallaDryRun = Config.Bind("Morkhalla", "MorkhallaDryRun", false,
+				"Log what would be restored, but change nothing and write nothing. Visits are then tracked in memory only.");
+			MorkhallaRegenNow = Config.Bind("Morkhalla", "MorkhallaRegenNow", false,
+				"One-shot: at the next daily sweep the dungeon regenerates whatever its clock says, then this sets itself back to false.");
+			MorkhallaNotifyText = Config.Bind("Morkhalla", "MorkhallaNotifyText", "The spirits will restore the gems and coin piles after {days} without visitors",
+				"Shown to a player inside the dungeon when gems or piles are missing (needs Notify on). {days} is MorkhallaDays; {mined} is how many are missing.");
+			MorkhallaEntranceText = Config.Bind("Morkhalla", "MorkhallaEntranceText", "The spirits will restore the gems and coin piles in {days} if no one enters",
+				"Shown at the dungeon's entrance when gems or piles are missing. {days} is what is left of its clock; going in restarts it.");
+			MorkhallaDueText = Config.Bind("Morkhalla", "MorkhallaDueText", "The spirits will restore the gems and coin piles at the next dawn if no one enters",
+				"Shown at the entrance when the dungeon's time is already up.");
+			MorkhallaEntranceRadius = Config.Bind("Morkhalla", "MorkhallaEntranceRadius", 50f,
+				"Metres, measured flat, around the dungeon's centre within which a player on the surface gets the entrance message. " +
+				"Its surface location stands about 30 m from its interior's centre. Standing there does not count as a visit.");
+			MorkhallaRadius = Config.Bind("Morkhalla", "MorkhallaRadius", 200f,
+				"Metres from the dungeon's centre that count as inside it.");
+
 			DungeonRegrow.All.Clear();
 			MudKind = new DungeonRegrow(new DungeonRegrow.Kind
 			{
@@ -224,9 +255,26 @@ namespace RestockRegen
 				NotifyText = BlackCoreNotifyText, EntranceText = BlackCoreEntranceText, DueText = BlackCoreDueText,
 				EntranceRadius = MineEntranceRadius, Radius = MineRadius,
 			});
+			MorkhallaKind = new DungeonRegrow(new DungeonRegrow.Kind
+			{
+				Label = "Morkhalla gems and coin piles", DungeonLabel = "Morkhalla dungeon", Generator = "DG_MorkHalla",
+				Names = new[]
+				{
+					"Morkhalla_Eye1", "Morkhalla_Eye2", "Morkhalla_Eye3", "Morkhalla_Eye4",
+					"Morkhalla_Eye5_gemstone", "Morkhalla_Eye6_gemstone", "Morkhalla_Eye7_gemstone",
+					"Morkhalla_Rubble1", "Morkhalla_Rubble2", "Morkhalla_Rubble3", "Morkhalla_Rubble4",
+					"Pickable_MorkHallaTreasure",
+				},
+				Singular = "gem or coin pile", Plural = "gems and coin piles",
+				SpotsKey = "restockregen_morkspots", VisitKey = "restockregen_morkvisit",
+				On = Morkhalla, Days = MorkhallaDays, DryRun = MorkhallaDryRun, RegenNow = MorkhallaRegenNow,
+				NotifyText = MorkhallaNotifyText, EntranceText = MorkhallaEntranceText, DueText = MorkhallaDueText,
+				EntranceRadius = MorkhallaEntranceRadius, Radius = MorkhallaRadius,
+			});
 			DungeonRegrow.All.Add(MudKind);
 			DungeonRegrow.All.Add(CrystalKind);
 			DungeonRegrow.All.Add(BlackCoreKind);
+			DungeonRegrow.All.Add(MorkhallaKind);
 
 			// A Harmony id of its own per load. On a hot reload (ScriptEngine) the new copy is
 			// patched before the old copy is destroyed, and the old copy's UnpatchSelf would also
@@ -331,7 +379,7 @@ namespace RestockRegen
 			catch (Exception e)
 			{
 				mudFailed = true;
-				Log.LogError($"dungeon regrow (mud piles, crystals, black cores) failed and is off until restart: {e}");
+				Log.LogError($"dungeon regrow (mud piles, crystals, black cores, Morkhalla) failed and is off until restart: {e}");
 			}
 		}
 

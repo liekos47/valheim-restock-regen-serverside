@@ -16,12 +16,14 @@ namespace RestockRegen
 		- Ancient armor, Mistlands: giant_helmet1/2 and giant_sword1/2. The first hit replaces the
 		  piece with "<name>_destruction" (a MineRock5 with health per chunk); breaking the last
 		  chunk deletes that too.
-		- Obsidian, Mountains: MineRock_Obsidian. No broken version: a partly mined deposit is the
-		  same object with a "health" string (MineRock5), a mined-out one is deleted.
+		- Obsidian, Mountains: MineRock_Obsidian. Despite the name it is a plain Destructible with
+		  no m_spawnWhenDestroyed (prefab data): one object, deleted when broken, nothing left.
 		- Flametal, Ashlands: LeviathanLava, the spire that rises out of the lava. It is the ocean
-		  Leviathan's code: every hit has a chance (m_hitReactionChance) to make it leave, which sets
-		  ZDOVars.s_dead, plays the dive and then destroys it. Until then each mined chunk is a
-		  "Health<n>" float on it (MineRock). It floats on the lava, so its position can drift a
+		  Leviathan's code: every hit has a chance to make it leave, which sets ZDOVars.s_dead, plays
+		  the dive and then destroys it. For this prefab that chance (m_hitReactionChance) is 0.01,
+		  not the code's default 0.25, and its MineRock has m_removeWhenDestroyed off, so the usual
+		  result of mining one is a husk that stays, each mined chunk a "Health<n>" float on it,
+		  and only now and then one that sinks. It floats on the lava, so its position can drift a
 		  little, and its spot is matched flat, within DriftRadius, instead of to 20 cm.
 
 		Dragon eggs were a group until 0.12.0 and were removed: the game respawns them itself.

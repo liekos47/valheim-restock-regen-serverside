@@ -1,3 +1,21 @@
+## 0.14.0
+
+- The Deep North's Morkhalla dungeon gets its gems and coin piles back once nobody has been inside
+  for 30 in-game days: the gemstones in the statue eyes (`Morkhalla_Eye1` to `Eye7`), the rubble
+  piles that drop ancient coins (`Morkhalla_Rubble1` to `Rubble4`) and the treasure piles
+  (`Pickable_MorkHallaTreasure`). `/kick restock-regen-morkhalla` and `[Morkhalla]` settings.
+- How each one behaves was read from the game's own prefab data this time, not inferred: the eyes
+  stay in the world marked as taken with no respawn time, a broken coin pile is deleted and leaves
+  only non-persistent debris, and a treasure pile is deleted when taken.
+- `tools/PrefabDump` reads a prefab's settings out of the game's asset bundles. Every earlier
+  feature was re-checked with it. Confirmed: mud piles, ancient armor, crystals, black cores, and
+  that dragon eggs respawn by themselves (480 minutes). Two descriptions were wrong and are
+  corrected, with no change to what the mod does:
+  - Flametal: a spire's chance of sinking is 1 in 100 per hit, not 1 in 4, and a fully mined spire
+    is not deleted, it stays as an empty husk. The mod restores a husk or a sunk spire alike.
+  - Obsidian: a deposit is one breakable object, so there is no partly mined state. It is either
+    there or gone.
+
 ## 0.13.0
 
 - Flametal comes back. The flametal spire in the Ashlands' lava (`LeviathanLava`) runs the ocean
