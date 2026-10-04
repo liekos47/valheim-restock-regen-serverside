@@ -25,7 +25,7 @@ namespace RestockRegen
 		// Working name; the final name is still to be chosen. Changing Guid renames the config file.
 		public const string Guid = "liekos47.restockregen";
 		public const string Name = "RestockRegen";
-		public const string Version = "0.16.0";
+		public const string Version = "0.17.0";
 
 		internal static ManualLogSource Log;
 		internal static RestockRegenPlugin Instance;
@@ -490,11 +490,11 @@ namespace RestockRegen
 			catch (Exception e)
 			{
 				regrowFailed = true;
-				Log.LogError($"regrow (ancient armor, obsidian, flametal) failed and is off until restart: {e}");
+				Log.LogError($"regrow (ancient armor, obsidian, flametal, ice) failed and is off until restart: {e}");
 			}
 		}
 
-		// "restock-regen-armor", "-obsidian", "-flametal": every damaged or gone spot of that kind that
+		// "restock-regen-armor", "-obsidian", "-flametal", "-ice": every damaged or gone spot of that kind that
 		// is free, now, whatever its clock. Returns false for an unknown kind.
 		internal bool RegrowNow(string id)
 		{

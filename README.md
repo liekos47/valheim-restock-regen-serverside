@@ -10,8 +10,9 @@ over time:
   visitors.
 - **The Queen** comes back to a Mistlands infested citadel 30 days after the last visit, once she
   has been killed, and its sealed door closes again.
-- **Ancient armor** (the giant's helmets and swords in the Mistlands), **obsidian** (Mountains) and
-  **flametal** (the spires in the Ashlands' lava) come back where nobody has been for 30 days.
+- **Ancient armor** (the giant's helmets and swords in the Mistlands), **obsidian** (Mountains),
+  **flametal** (the spires in the Ashlands' lava) and **ice** (the Deep North's ice ponds and shore
+  ice) come back where nobody has been for 30 days.
 
 **Server-side only.** Install it on the dedicated server. Players install nothing, and everything
 they see arrives through the game's own messages.
@@ -30,7 +31,7 @@ they see arrives through the game's own messages.
 - [Morkhalla gems and coin piles](#morkhalla-gems-and-coin-piles)
 - [The Hole](#the-hole)
 - [The Queen's citadel](#the-queens-citadel)
-- [Ancient armor, obsidian and flametal](#ancient-armor-obsidian-and-flametal)
+- [Ancient armor, obsidian, flametal and ice](#ancient-armor-obsidian-flametal-and-ice)
 - [Admin commands](#admin-commands)
 - [Settings](#settings)
 - [Hot reload](#hot-reload)
@@ -60,6 +61,7 @@ they see arrives through the game's own messages.
 | Going inside that citadel | Middle of the screen | The spirits will bring the Queen back after 30 days without visitors |
 | Entering the Mountains | Middle of the screen | The spirits will restore obsidian after 30 days without visitors |
 | Entering the Ashlands | Middle of the screen | The spirits will restore flametal after 30 days without visitors |
+| Entering the Deep North | Middle of the screen | The spirits will restore ice after 30 days without visitors |
 
 ## Loot chests
 
@@ -185,15 +187,16 @@ in it, read from the game's own data:
   as before.
 - `CitadelCloseDoor` set to `false` leaves the door as the players left it.
 
-## Ancient armor, obsidian and flametal
+## Ancient armor, obsidian, flametal and ice
 
-Three kinds of world object that work the same way, each with its own settings:
+Four kinds of world object that work the same way, each with its own settings:
 
 | Kind | Where | Objects |
 | --- | --- | --- |
 | Ancient armor | Mistlands | The giant's helmets and swords (`giant_helmet1`, `giant_helmet2`, `giant_sword1`, `giant_sword2`) |
 | Obsidian | Mountains | Obsidian deposits (`MineRock_Obsidian`) |
 | Flametal | Ashlands | The flametal spires that rise out of the lava (`LeviathanLava`) |
+| Ice | Deep North | The ice ponds (`IcePond_rock`) and the ice along the shore (`IceShore_1`). The floating ice on the sea is not restored: it drifts, so it has no spot to come back to. |
 
 - A mined or missing object comes back once no player has been within 100 m of its spot for
   30 in-game days. Any visit starts the count again for that area.
@@ -241,6 +244,7 @@ single word with no spaces.
 | `/kick restock-regen-armor` | Restores every mined ancient armor piece **now**, whatever its clock, except where a player is near or has built. |
 | `/kick restock-regen-obsidian` | The same for obsidian deposits. |
 | `/kick restock-regen-flametal` | The same for flametal spires. |
+| `/kick restock-regen-ice` | The same for ice ponds and shore ice. |
 | `/kick restock-regen-crystals` | Regenerates every frost cave with picked crystals **now**, like `restock-regen` does for crypts. |
 | `/kick restock-regen-cores` | Regenerates every infested mine with taken black cores **now**. |
 | `/kick restock-regen-morkhalla` | Regenerates the Morkhalla dungeon's gems and coin piles **now**, if nobody is inside. |
@@ -431,6 +435,23 @@ every 30 seconds, and can also be changed in game with `/kick restock-set`.
 | `FlametalVisitRadius` | `100` | Metres. A player this close counts as a visit, and nothing is restored with a player this close. |
 | `FlametalBuildClearance` | `8` | Metres. No spire is restored if anything a player built is this close. `0` turns the check off. |
 
+### Ice
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `Ice` | `true` | Restore the ice ponds and the ice along the shore in the Deep North. |
+| `IceDays` | `30` | In-game days with no player within `IceVisitRadius` before mined ice comes back. |
+| `IceDryRun` | `false` | Log which ice would come back, change nothing. |
+| `IceVisitRadius` | `100` | Metres. A player this close counts as a visit, and nothing is restored with a player this close. |
+| `IceBuildClearance` | `8` | Metres. No ice is restored if anything a player built is this close. `0` turns the check off. |
+
+### DeepNorth
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `DeepNorthNotifyText` | `The spirits will restore ice after {days} without visitors` | Shown on entering the Deep North while `Ice` is on. `{days}` is `IceDays`. |
+| `DeepNorthNotifyCooldown` | `10` | Minutes. A player is told at most once in this long. |
+
 ### Ashlands
 
 | Setting | Default | What it does |
@@ -482,8 +503,8 @@ dedicated server. Put `RestockRegen.dll` in `BepInEx/plugins/`, or in `BepInEx/s
   (`restockregen_holevisit`).
 - On each infested citadel: its egg and creep block spots (`restockregen_citadelspots`) and last
   visit (`restockregen_citadelvisit`).
-- Beside the world save: `worlds_local/<world>.restockregen.txt`, the ancient armor, obsidian and
-  flametal spots, and when each area was last visited. Keep it with the world when you back it up or move it.
+- Beside the world save: `worlds_local/<world>.restockregen.txt`, the ancient armor, obsidian,
+  flametal and ice spots, and when each area was last visited. Keep it with the world when you back it up or move it.
 
 Removing the mod leaves these behind, and the game ignores them.
 

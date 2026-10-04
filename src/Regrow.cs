@@ -26,6 +26,13 @@ namespace RestockRegen
 		  and only now and then one that sinks. It floats on the lava, so its position can drift a
 		  little, and its spot is matched flat, within DriftRadius, instead of to 20 cm.
 
+		- Ice, Deep North (prefab data): IcePond_rock, the ice pond, and IceShore_1, the ice along
+		  the shore. Both are a Destructible with 1 health whose first hit spawns "<name>_frac", a
+		  MineRock5 giving Ice per chunk (1-3 for the pond, 2-3 for the shore, which needs tool tier
+		  2); the last chunk deletes it. Neither has anything that respawns it. The owner's save of
+		  2026-09-30 had 4 whole and 1 mined pond, 230 whole and 11 mined shore pieces. The floating
+		  ice (ice1) is not tracked: it drifts, and its drop table gives its Ice a weight of 0.
+
 		Dragon eggs were a group until 0.12.0 and were removed: the game respawns them itself.
 		A taken Pickable_DragonEgg stays in the world marked picked and is unpicked again by the
 		game's own timer (the owner's save holds eggs with s_picked back at false), so they were
@@ -43,7 +50,7 @@ namespace RestockRegen
 		clearance: nothing is ever put back into someone's house. A blocked spot is simply checked
 		again each day.
 
-		Players entering the Mistlands or the Mountains are told (WorldGenerator.GetBiome on their
+		Players entering the Mistlands, the Mountains, the Ashlands or the Deep North are told (WorldGenerator.GetBiome on their
 		position), at most once per cooldown so walking along a border does not repeat it.
 	*/
 	internal static class Regrow
@@ -109,7 +116,9 @@ namespace RestockRegen
 			Group flametal = Bind(config, "Flametal", "flametal", "flametal",
 				new[] { "LeviathanLava" }, "flametal spires in the Ashlands' lava");
 			flametal.Drifts = true;
-			Groups.AddRange(new[] { armor, obsidian, flametal });
+			Group ice = Bind(config, "Ice", "ice", "ice",
+				new[] { "IcePond_rock", "IceShore_1" }, "ice ponds and the ice along the shore in the Deep North");
+			Groups.AddRange(new[] { armor, obsidian, flametal, ice });
 
 			s_notices.Add(new BiomeNotice
 			{
@@ -136,6 +145,15 @@ namespace RestockRegen
 				Text = config.Bind("Ashlands", "AshlandsNotifyText", "The spirits will restore flametal after {days} without visitors",
 					"Shown to a player entering the Ashlands while Flametal is on (needs Notify on). {days} is FlametalDays."),
 				Cooldown = config.Bind("Ashlands", "AshlandsNotifyCooldown", 10f,
+					"Minutes. A player is told at most once in this long."),
+			});
+			s_notices.Add(new BiomeNotice
+			{
+				Biome = Heightmap.Biome.DeepNorth,
+				Groups = new[] { ice },
+				Text = config.Bind("DeepNorth", "DeepNorthNotifyText", "The spirits will restore ice after {days} without visitors",
+					"Shown to a player entering the Deep North while Ice is on (needs Notify on). {days} is IceDays."),
+				Cooldown = config.Bind("DeepNorth", "DeepNorthNotifyCooldown", 10f,
 					"Minutes. A player is told at most once in this long."),
 			});
 		}

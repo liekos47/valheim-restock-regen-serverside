@@ -1,3 +1,16 @@
+## 0.17.0
+
+- Ice comes back in the Deep North: the ice ponds (`IcePond_rock`) and the ice along the shore
+  (`IceShore_1`) are restored where nobody has been within 100 m for 30 in-game days, like obsidian.
+  `/kick restock-regen-ice`, `[Ice]` and `[DeepNorth]` settings, and a message on entering the Deep
+  North.
+- Read from the game's prefab data: both break into a mineable version on the first hit (1 to 3 ice
+  per chunk for a pond, 2 to 3 for shore ice, which needs a tier 2 pickaxe) and are deleted with
+  the last chunk. Nothing in the game brings them back. The owner's save of 2026-09-30 had 5 ponds
+  (1 partly mined) and 241 pieces of shore ice (11 partly mined).
+- The floating ice on the sea (`ice1`) is not restored: it drifts, so it has no spot to come back
+  to. The large floating ice shelves give no ice.
+
 ## 0.16.0
 
 - The Queen comes back. A Mistlands infested citadel whose Queen has been killed resets once nobody
