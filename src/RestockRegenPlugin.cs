@@ -25,7 +25,7 @@ namespace RestockRegen
 		// Working name; the final name is still to be chosen. Changing Guid renames the config file.
 		public const string Guid = "liekos47.restockregen";
 		public const string Name = "RestockRegen";
-		public const string Version = "0.17.0";
+		public const string Version = "0.18.0";
 
 		internal static ManualLogSource Log;
 		internal static RestockRegenPlugin Instance;
@@ -226,7 +226,7 @@ namespace RestockRegen
 
 			Morkhalla = Config.Bind("Morkhalla", "Morkhalla", true,
 				"Restore the gems and coin piles in the Deep North's Morkhalla dungeon once no player has been inside it for MorkhallaDays in-game days: " +
-				"the gemstones in the statue eyes, the rubble piles that drop ancient coins, and the treasure piles. " +
+				"the gemstones in the statue eyes, the rubble piles that drop ancient coins, the treasure piles, and the black ice block that starts a jotun invasion. " +
 				"Eyes whose gem was taken before the mod was installed come back too; piles broken or taken before then cannot.");
 			MorkhallaDays = Config.Bind("Morkhalla", "MorkhallaDays", 30,
 				"In-game days the dungeon must go without anyone inside before its gems and coin piles come back. Any visit starts the count again.");
@@ -327,7 +327,7 @@ namespace RestockRegen
 					"Morkhalla_Eye1", "Morkhalla_Eye2", "Morkhalla_Eye3", "Morkhalla_Eye4",
 					"Morkhalla_Eye5_gemstone", "Morkhalla_Eye6_gemstone", "Morkhalla_Eye7_gemstone",
 					"Morkhalla_Rubble1", "Morkhalla_Rubble2", "Morkhalla_Rubble3", "Morkhalla_Rubble4",
-					"Pickable_MorkHallaTreasure",
+					"Pickable_MorkHallaTreasure", "BlackIce_Start",
 				},
 				Singular = "gem or coin pile", Plural = "gems and coin piles",
 				SpotsKey = "restockregen_morkspots", VisitKey = "restockregen_morkvisit",

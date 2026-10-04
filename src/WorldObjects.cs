@@ -32,7 +32,19 @@ namespace RestockRegen
 			ZDOMan.instance.DestroyZDO(zdo);
 		}
 
-		internal static bool HeldByPlayer(ZDO zdo) =>
-			zdo != null && zdo.HasOwner() && zdo.GetOwner() != ZDOMan.GetSessionID();
+		// A player has the object loaded: its owner is a connected player whose active area covers
+		// it. An owner alone does not say so. The server only takes ownership back from objects
+		// near a connected player (ZDOMan.ReleaseNearbyZDOS), so an object keeps the session id of
+		// the last player who was near it after they log off or walk away, until someone else comes
+		// by or the server restarts.
+		internal static bool HeldByPlayer(ZDO zdo)
+		{
+			if (zdo == null || !zdo.HasOwner() || zdo.GetOwner() == ZDOMan.GetSessionID())
+			{
+				return false;
+			}
+			ZNetPeer owner = ZNet.instance.GetPeer(zdo.GetOwner());
+			return owner != null && ZNetScene.InActiveArea(zdo.GetPosition(), owner.GetRefPos());
+		}
 	}
 }

@@ -67,7 +67,6 @@ namespace RestockRegen
 			{
 				return;
 			}
-			long server = ZDOMan.GetSessionID();
 			foreach (ZDOID id in s_pending.Keys.ToList())
 			{
 				ZDO zdo = ZDOMan.instance.GetZDO(id);
@@ -76,7 +75,7 @@ namespace RestockRegen
 					s_pending.Remove(id); // destroyed
 					continue;
 				}
-				if (zdo.HasOwner() && zdo.GetOwner() != server)
+				if (WorldObjects.HeldByPlayer(zdo))
 				{
 					continue; // a player still holds it
 				}

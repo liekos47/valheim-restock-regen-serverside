@@ -149,3 +149,9 @@ field:ZDOVars.s_roomData
 field:ZDOVars.s_state
 field:Door.m_keyItem
 field:Door.m_consumeKey
+# 0.18.0 who holds an object: the owner must be connected and have it in their active area
+ZDOMan.ReleaseNearbyZDOS
+ZDOMan.IsInPeerActiveArea
+ZNetScene.InActiveArea
+PersistentEventSystem.TriggerEvent
+TriggerPersistentEventOnDestroy.OnDestroyed

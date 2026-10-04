@@ -33,6 +33,11 @@ namespace RestockRegen
 		  - the treasure piles, Pickable_MorkHallaTreasure: a PickableItem (one random ancient
 		    gemstone), deleted by PickableItem.RPC_Pick.
 		  The last two are put back from their remembered spots.
+		  - the black ice block, BlackIce_Start: a Destructible (1000 health) with
+		    TriggerPersistentEventOnDestroy, which starts the "jotun_invasion" persistent event. It
+		    is deleted when broken and nothing respawns it. On the owner's save of 2026-10-04 each
+		    of the 10 left stood 30 m, measured flat, from a DG_MorkHalla generator and about 100 m
+		    below it. Put back from its remembered spot like the piles.
 
 		- Trash piles and spawner nests, the Deep North's Hole (DG_Hole), from prefab data:
 		  - elaking_trashpile: a Destructible with 1 health whose DropOnDestroyed gives frostwood,
@@ -511,7 +516,6 @@ namespace RestockRegen
 			{
 				return;
 			}
-			long server = ZDOMan.GetSessionID();
 			foreach (Dungeon dungeon in m_dungeons.Values)
 			{
 				if (!dungeon.SpotsDirty && !dungeon.VisitDirty)
@@ -519,7 +523,7 @@ namespace RestockRegen
 					continue;
 				}
 				ZDO generator = ZDOMan.instance.GetZDO(dungeon.Generator);
-				if (generator == null || (generator.HasOwner() && generator.GetOwner() != server))
+				if (generator == null || WorldObjects.HeldByPlayer(generator))
 				{
 					continue;
 				}
@@ -718,7 +722,7 @@ namespace RestockRegen
 			}
 			foreach (var key in dungeon.Spots.Keys)
 			{
-				if (standing.TryGetValue(key, out ZDO zdo) && zdo.HasOwner() && zdo.GetOwner() != server)
+				if (standing.TryGetValue(key, out ZDO zdo) && WorldObjects.HeldByPlayer(zdo))
 				{
 					return true;
 				}

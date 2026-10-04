@@ -121,7 +121,7 @@ they see arrives through the game's own messages.
 
 ## Morkhalla gems and coin piles
 
-The dungeon inside the Deep North's castle. Three things in it are restored once nobody has been
+The dungeon inside the Deep North's castle. Four things in it are restored once nobody has been
 **inside** for 30 in-game days (any visit starts the count again; standing at the entrance does not
 count):
 
@@ -130,6 +130,7 @@ count):
 | Gems in the statue eyes | `Morkhalla_Eye1` to `Eye4` (ancient gemstones), `Morkhalla_Eye5_gemstone` to `Eye7_gemstone` (ordinary gemstones) | The eye stays, marked as taken, for good | The mark is cleared. Gems taken before the mod was installed come back too. |
 | Coin piles | `Morkhalla_Rubble1` to `Rubble4`, the rubble that drops ancient coins and grausten when broken | The pile is destroyed and deleted | A new pile is put back in the same spot |
 | Treasure piles | `Pickable_MorkHallaTreasure` (one random ancient gemstone) | Deleted when taken | A new one is put back in the same spot |
+| Black ice block | `BlackIce_Start`, the block that starts a jotun invasion when broken | Deleted when broken, so each dungeon can start only one invasion | A new one is put back in the same spot, so the invasion can be started again |
 
 - Piles are remembered from the first time the mod sees them. One broken or taken before the mod
   was installed left nothing behind and cannot come back.

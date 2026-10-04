@@ -1,3 +1,17 @@
+## 0.18.0
+
+- Jotun invasions can be started again. The black ice block in a Morkhalla dungeon
+  (`BlackIce_Start`) starts a jotun invasion when broken and is then gone for good, so each dungeon
+  could start only one. It now comes back with the dungeon's gems and coin piles, once nobody has
+  been inside for 30 in-game days. Blocks broken before this version left nothing behind and cannot
+  come back. The owner's save of 2026-10-04 had 10 blocks left in 15 dungeons.
+- Fixed: a dungeon could lose its clock and its remembered spots on a mod reload, and could be
+  skipped as occupied with nobody there. The mod treated any object with an owner as held by a
+  player, but the game leaves the last nearby player as owner after they log off or walk away,
+  until someone else comes by or the server restarts. An object now counts as held only while its
+  owner is connected and has it loaded. Seen on 2026-10-04: two of three citadels restarted their
+  30 days when 0.17.0 was loaded.
+
 ## 0.17.0
 
 - Ice comes back in the Deep North: the ice ponds (`IcePond_rock`) and the ice along the shore
