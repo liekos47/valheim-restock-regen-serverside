@@ -25,7 +25,7 @@ namespace RestockRegen
 		// Working name; the final name is still to be chosen. Changing Guid renames the config file.
 		public const string Guid = "liekos47.restockregen";
 		public const string Name = "RestockRegen";
-		public const string Version = "0.18.0";
+		public const string Version = "0.19.0";
 
 		internal static ManualLogSource Log;
 		internal static RestockRegenPlugin Instance;
@@ -546,16 +546,6 @@ namespace RestockRegen
 			if (Instance == this)
 			{
 				Instance = null;
-			}
-		}
-
-		// "!restock reload": ScriptEngine reloads every plugin in BepInEx/scripts, this one included.
-		internal void HotReload()
-		{
-			Log.LogInfo($"{Name} {Version}: hot reload requested");
-			if (!AdminCommands.Reload())
-			{
-				Log.LogWarning("hot reload failed: ScriptEngine not found");
 			}
 		}
 

@@ -1,8 +1,8 @@
 {
   "name": "RestockRegen",
-  "version_number": "0.18.0",
+  "version_number": "0.19.0",
   "website_url": "https://github.com/liekos47/valheim-restock-regen-serverside",
-  "description": "Server-side only. Empty loot chests refill from their own loot table after 30 in-game days.",
+  "description": "Server-side only. Loot chests refill, and dungeon resources, the Queen, ancient armor, obsidian, flametal and ice come back, 30 in-game days after players leave them alone.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2333"
   ]

@@ -1,7 +1,5 @@
 using System;
 using System.Linq;
-using System.Reflection;
-using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using HarmonyLib;
 
@@ -12,7 +10,6 @@ namespace RestockRegen
 
 			/kick restock-help                    (in the chat box, or "kick restock-help" in the F5 console)
 			/kick restock-status
-			/kick restock-reload                  (also /kick reload-restock-regen)
 			/kick restock-regen
 			/kick restock-regen-armor
 			/kick restock-regen-obsidian
@@ -38,24 +35,14 @@ namespace RestockRegen
 	[HarmonyPatch(typeof(ZNet), "RPC_Kick")]
 	internal static class AdminCommands
 	{
-		private const string ScriptEngineGuid = "com.bepis.bepinex.scriptengine";
-
 		private static bool Prefix(ZNet __instance, ZRpc rpc, string user)
 		{
 			string word = (user ?? "").Trim();
-			string command;
-			if (word.Equals("reload-restock-regen", StringComparison.OrdinalIgnoreCase))
-			{
-				command = "reload";
-			}
-			else if (word.StartsWith("restock-", StringComparison.OrdinalIgnoreCase))
-			{
-				command = word.Substring("restock-".Length);
-			}
-			else
+			if (!word.StartsWith("restock-", StringComparison.OrdinalIgnoreCase))
 			{
 				return true; // a real kick
 			}
+			string command = word.Substring("restock-".Length);
 
 			ZNetPeer peer = __instance.GetPeer(rpc);
 			if (!__instance.ListContainsId(__instance.m_adminList, rpc.GetSocket().GetHostName()))
@@ -86,15 +73,6 @@ namespace RestockRegen
 		private static string[] Handle(string command)
 		{
 			string lower = command.ToLowerInvariant();
-			if (lower == "reload")
-			{
-				if (!CanReload())
-				{
-					return new[] { "RestockRegen: hot reload is not set up (ScriptEngine missing, or the mod is not in BepInEx/scripts)" };
-				}
-				RestockRegenPlugin.Instance.Invoke(nameof(RestockRegenPlugin.HotReload), 1f);
-				return new[] { $"RestockRegen {RestockRegenPlugin.Version}: reloading from BepInEx/scripts..." };
-			}
 			if (lower == "status")
 			{
 				return new[] { RestockRegenPlugin.Instance.Status() };
@@ -157,7 +135,7 @@ namespace RestockRegen
 			var help = new[]
 			{
 				"RestockRegen commands (in chat: /kick <command>, in the F5 console: kick <command>):",
-				"  restock-status   restock-regen   restock-regen-crystals   restock-regen-cores   restock-regen-morkhalla   restock-regen-hole   restock-regen-citadel   restock-regen-armor   restock-regen-obsidian   restock-regen-flametal   restock-regen-ice   restock-reload   restock-get:Setting   restock-set:Setting=value",
+				"  restock-status   restock-regen   restock-regen-crystals   restock-regen-cores   restock-regen-morkhalla   restock-regen-hole   restock-regen-citadel   restock-regen-armor   restock-regen-obsidian   restock-regen-flametal   restock-regen-ice   restock-get:Setting   restock-set:Setting=value",
 				"  In text settings type _ for a space. Settings: " + string.Join(", ", RestockRegenPlugin.Instance.Config.Keys.Select(k => k.Key)),
 			};
 			return help;
@@ -168,29 +146,6 @@ namespace RestockRegen
 			ConfigFile config = RestockRegenPlugin.Instance.Config;
 			ConfigDefinition def = config.Keys.FirstOrDefault(k => k.Key.Equals(key.Trim(), StringComparison.OrdinalIgnoreCase));
 			return def == null ? null : config[def];
-		}
-
-		private static bool CanReload()
-		{
-			return Chainloader.PluginInfos.TryGetValue(ScriptEngineGuid, out var info) && info.Instance != null
-				&& (RestockRegenPlugin.Instance.Info.Location ?? "").Replace('\\', '/').Contains("/scripts/");
-		}
-
-		// ScriptEngine.ReloadPlugins is private; it destroys every plugin it loaded from
-		// BepInEx/scripts and loads the DLLs there again.
-		internal static bool Reload()
-		{
-			if (!Chainloader.PluginInfos.TryGetValue(ScriptEngineGuid, out var info) || info.Instance == null)
-			{
-				return false;
-			}
-			MethodInfo reload = info.Instance.GetType().GetMethod("ReloadPlugins", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-			if (reload == null)
-			{
-				return false;
-			}
-			reload.Invoke(info.Instance, null);
-			return true;
 		}
 	}
 }

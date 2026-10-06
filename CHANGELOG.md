@@ -1,3 +1,9 @@
+## 0.19.0
+
+- Removed `/kick restock-reload` and `/kick reload-restock-regen`. Hot reload is left to BepInEx
+  ScriptEngine, which reloads the mod by itself when the DLL in `BepInEx/scripts` is replaced (with
+  `EnableFileSystemWatcher = true`). The command only called a private method inside ScriptEngine.
+
 ## 0.18.0
 
 - Jotun invasions can be started again. The black ice block in a Morkhalla dungeon

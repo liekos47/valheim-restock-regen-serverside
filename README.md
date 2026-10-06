@@ -1,7 +1,19 @@
-# RestockRegen (working name)
+# RestockRegen
 
-A server-side mod for Valheim dedicated servers that brings the world's one-shot resources back
-over time:
+![A player opening an empty loot chest, with the message "The spirits will refill this chest in 20 days" on screen](https://raw.githubusercontent.com/liekos47/valheim-restock-regen-serverside/main/screenshots/chest-refill-notification.png)
+
+A server-side mod for Valheim dedicated servers, made for long-running multiplayer worlds. In
+Valheim some things can be taken only once per world: a loot chest stays empty, a sunken crypt stays
+mined out, the Queen stays dead. Players who join the server later find those places already
+stripped by the players before them. This mod brings a **chosen list** of those one-time resources
+back after a while, so latecomers get their share too.
+
+**It does not regenerate every resource.** Only the things in the list below come back. Everything
+else is left exactly as the game has it, for example copper, tin and silver deposits, trees and
+rocks. Everything in the list except loot chests can also be turned off on its own in the
+[settings](#settings).
+
+What comes back:
 
 - **Loot chests** refill 30 in-game days after they are first opened.
 - **Muddy scrap piles** in sunken crypts, **crystals** in frost caves, **black cores** in
@@ -251,7 +263,6 @@ single word with no spaces.
 | `/kick restock-regen-morkhalla` | Regenerates the Morkhalla dungeon's gems and coin piles **now**, if nobody is inside. |
 | `/kick restock-regen-hole` | Regenerates every Hole's nests and trash piles **now**, except Holes with a player inside. |
 | `/kick restock-regen-citadel` | Resets every infested citadel whose Queen is dead **now**, except citadels with a player inside or at the door. |
-| `/kick restock-reload` | Reloads the mod from `BepInEx/scripts` without restarting the server ([hot reload](#hot-reload)). `/kick reload-restock-regen` does the same. |
 
 ### Changing settings with restock-set
 
@@ -276,8 +287,48 @@ effect; everything else applies within 30 seconds.
 
 ## Settings
 
-The file is `BepInEx/config/liekos47.restockregen.cfg`. It is written on the first run, read again
-every 30 seconds, and can also be changed in game with `/kick restock-set`.
+All settings live on the server, in `BepInEx/config/liekos47.restockregen.cfg`. Players have nothing
+to configure.
+
+### How to configure the server
+
+1. Install the mod and start the server once. The mod writes the config file with every setting at
+   its default.
+2. Open `BepInEx/config/liekos47.restockregen.cfg` in a text editor. On a hosted server, use the
+   host's file manager or SFTP.
+3. Change the values you want and save the file. Each setting sits under a `[Section]` heading, as
+   `Name = value`:
+
+   ```
+   [General]
+   Days = 30
+
+   [MudPiles]
+   MudPiles = true
+   MudPileDays = 30
+   ```
+
+4. There is no need to restart. The mod reads the file again every 30 seconds. The one exception is
+   `Exclude`, which needs a server restart.
+
+Admins can also change any setting from inside the game with `/kick restock-set:Setting=value`, see
+[Changing settings with restock-set](#changing-settings-with-restock-set). That writes to the same
+file.
+
+Things most servers will want to look at:
+
+- **How long things take to come back.** Every kind has its own `...Days` setting, 30 in-game days by
+  default: `Days` for chests, `MudPileDays` for sunken crypts, `IceDays` for ice and so on. Days are
+  played time, about 20 minutes each with someone online.
+- **Turning a kind off.** Every kind except loot chests has its own on/off setting named after it,
+  such as `MudPiles`, `Obsidian` or `Ice`. Set it to `false` and the mod leaves that resource alone.
+  `Enabled = false` under `[General]` switches the whole mod off, chests included.
+- **Trying it safely first.** Every kind has a `...DryRun` setting. With it on, the mod only writes
+  to the server log what it would bring back and changes nothing in the world.
+- **The on-screen messages.** `Notify = false` turns them off, and every message text can be
+  rewritten.
+
+The tables below list every setting, section by section.
 
 ### General (chests)
 
@@ -469,15 +520,16 @@ every 30 seconds, and can also be changed in game with `/kick restock-set`.
 
 ## Hot reload
 
-A new version of the mod can be loaded without restarting the server, using
-[ScriptEngine](https://github.com/BepInEx/BepInEx.Debug) from the BepInEx developers:
+The mod has no hot reload of its own. A new version can be loaded without restarting the server
+with [ScriptEngine](https://github.com/BepInEx/BepInEx.Debug#scriptengine) from the BepInEx
+developers, which the mod is built to work with:
 
 1. Put `ScriptEngine.dll` in `BepInEx/plugins/`, and `RestockRegen.dll` in `BepInEx/scripts/`
    (not in `plugins/` as well).
-2. In `BepInEx/config/com.bepis.bepinex.scriptengine.cfg` set `LoadOnStart = true`, and
-   `EnableFileSystemWatcher = true` if replacing the DLL should reload it automatically.
-3. To load a new version, **back up the world first**, then replace `BepInEx/scripts/RestockRegen.dll`,
-   or type `/kick restock-reload`.
+2. In `BepInEx/config/com.bepis.bepinex.scriptengine.cfg` set `LoadOnStart = true` and
+   `EnableFileSystemWatcher = true`.
+3. To load a new version, **back up the world first**, then replace `BepInEx/scripts/RestockRegen.dll`.
+   ScriptEngine reloads it a few seconds later.
 
 Settings never need a reload; they are read every 30 seconds. Each reload leaves the old copy in
 memory (a few tens of kilobytes), so restart the server now and then.
@@ -486,7 +538,8 @@ memory (a few tens of kilobytes), so restart the server now and then.
 
 Requires [BepInEx 5](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/) on the
 dedicated server. Put `RestockRegen.dll` in `BepInEx/plugins/`, or in `BepInEx/scripts/` for
-[hot reload](#hot-reload). Start the server once to create the config file.
+[hot reload](#hot-reload). Start the server once to create the config file, then see
+[How to configure the server](#how-to-configure-the-server).
 
 ## What the mod stores
 

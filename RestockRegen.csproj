@@ -4,7 +4,7 @@
     <TargetFramework>net472</TargetFramework>
     <AssemblyName>RestockRegen</AssemblyName>
     <RootNamespace>RestockRegen</RootNamespace>
-    <Version>0.18.0</Version>
+    <Version>0.19.0</Version>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <Deterministic>true</Deterministic>
@@ -53,7 +53,7 @@
   </ItemGroup>
 
   <!-- Thunderstore package: pkg\ holds manifest, icon, README, CHANGELOG and plugins\RestockRegen.dll,
-       zipped to RestockRegen-<version>.zip. The icon is optional until the name is final. -->
+       zipped to RestockRegen-<version>.zip. -->
   <Target Name="Package" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
     <MakeDir Directories="$(MSBuildProjectDirectory)\pkg\plugins" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildProjectDirectory)\pkg\plugins" />
