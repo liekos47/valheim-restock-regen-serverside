@@ -1,5 +1,7 @@
 # RestockRegen
 
+[![Support me on Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20the%20mod-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/liekos47)
+
 ![A player opening an empty loot chest, with the message "The spirits will refill this chest in 20 days" on screen](https://raw.githubusercontent.com/liekos47/valheim-restock-regen-serverside/main/screenshots/chest-refill-notification.png)
 
 A server-side mod for Valheim dedicated servers, made for long-running multiplayer worlds. In
