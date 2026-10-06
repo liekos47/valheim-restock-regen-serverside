@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <!-- hand wobble: one for the colour fills, a tighter one for the black outline pen -->
+    <filter id="wobbleFill" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="6" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="wobbleLine" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="2" seed="23" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="4.5" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="paperGrain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3"/>
+      <feColorMatrix values="0 0 0 0 0.35  0 0 0 0 0.3  0 0 0 0 0.2  0 0 0 0.09 0"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <!-- overlapping marker passes: slanted bands of uneven darkness with thin gaps -->
+    <pattern id="streaks" width="60" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(-32)">
+      <g fill="#00002a">
+        <rect x="9" width="11" height="10" opacity="0.13"/>
+        <rect x="20" width="8" height="10" opacity="0.04"/>
+        <rect x="28" width="12" height="10" opacity="0.17"/>
+        <rect x="40" width="9" height="10" opacity="0.07"/>
+        <rect x="49" width="11" height="10" opacity="0.14"/>
+      </g>
+      <g fill="#ffffff" opacity="0.16">
+        <rect x="27" width="1.6" height="10"/>
+        <rect x="48" width="1.6" height="10"/>
+        <rect x="8" width="1.2" height="10"/>
+      </g>
+    </pattern>
+    <clipPath id="inked"><path d="M22,26 L236,20 L238,232 L20,238 Z"/></clipPath>
+
+    <path id="ghost" d="M152,22 C192,22 208,56 198,88 C192,108 176,112 170,134 C162,118 152,124 146,108 C132,118 110,104 110,76 C110,46 126,22 152,22 Z"/>
+    <path id="lid" d="M-58,0 L-50,-50 Q0,-72 50,-50 L58,0 Z"/>
+    <rect id="body" x="-60" y="0" width="120" height="56" rx="4"/>
+    <rect id="bandL" x="-46" y="0" width="12" height="56"/>
+    <rect id="bandR" x="34" y="0" width="12" height="56"/>
+    <rect id="lock" x="-10" y="-4" width="20" height="26" rx="3"/>
+    <g id="coinsIn">
+      <ellipse cx="-14" cy="-3" rx="11" ry="6"/>
+      <ellipse cx="12" cy="-5" rx="11" ry="6"/>
+    </g>
+    <g id="coinsFall">
+      <circle cx="106" cy="140" r="8"/>
+      <circle cx="120" cy="154" r="8"/>
+      <circle cx="108" cy="168" r="8"/>
+    </g>
+  </defs>
+
+  <!-- paper -->
+  <rect width="256" height="256" rx="28" fill="#f7f2e4"/>
+  <rect width="256" height="256" rx="28" fill="#f7f2e4" filter="url(#paperGrain)"/>
+
+  <!-- colour marker fills, a little off from the outlines -->
+  <g filter="url(#wobbleFill)" transform="translate(2,-1.5)">
+    <path d="M22,26 L236,20 L238,232 L20,238 Z" fill="#2c3c93" stroke="#2c3c93" stroke-width="8" stroke-linejoin="round"/>
+    <g stroke="#2c3c93" stroke-width="9" stroke-linecap="round">
+      <path d="M12,62 L40,48"/>
+      <path d="M226,204 L247,193"/>
+      <path d="M196,16 L214,9"/>
+    </g>
+    <g fill="none" stroke="#6fb7ee" stroke-width="8" stroke-linecap="round">
+      <circle cx="154" cy="78" r="64" stroke-dasharray="44 16"/>
+      <circle cx="154" cy="78" r="80" stroke-dasharray="30 26" stroke-width="6"/>
+    </g>
+    <g transform="translate(118,190) scale(0.95)">
+      <use href="#lid" fill="#7a4619"/>
+      <ellipse cx="0" cy="-2" rx="50" ry="13" fill="#3a2410"/>
+      <use href="#coinsIn" fill="#f5c62c"/>
+      <use href="#body" fill="#b06c2c"/>
+      <use href="#bandL" fill="#737b88"/>
+      <use href="#bandR" fill="#737b88"/>
+      <use href="#lock" fill="#f5c62c"/>
+    </g>
+    <use href="#coinsFall" fill="#f5c62c"/>
+  </g>
+
+  <!-- marker streaks over everything coloured -->
+  <g clip-path="url(#inked)">
+    <rect width="256" height="256" fill="url(#streaks)" filter="url(#wobbleFill)"/>
+  </g>
+
+  <!-- the spirit is bare paper with a little light blue shading -->
+  <g filter="url(#wobbleLine)">
+    <use href="#ghost" fill="#fdfcf7"/>
+    <g fill="none" stroke="#a9dcf5" stroke-width="7" stroke-linecap="round">
+      <path d="M185,50 C193,64 191,84 184,96"/>
+      <path d="M176,103 L171,116"/>
+      <path d="M124,60 C120,72 121,84 126,92" stroke-width="5"/>
+    </g>
+  </g>
+
+  <!-- black outline pen -->
+  <g filter="url(#wobbleLine)" fill="none" stroke="#15152b" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M120,92 C100,100 96,116 104,128" stroke-width="15"/>
+    <path d="M120,92 C100,100 96,116 104,128" stroke="#fdfcf7" stroke-width="6"/>
+    <use href="#ghost"/>
+    <ellipse cx="140" cy="68" rx="6.5" ry="9.5" fill="#15152b"/>
+    <ellipse cx="170" cy="68" rx="6.5" ry="9.5" fill="#15152b"/>
+    <g transform="translate(118,190) scale(0.95)">
+      <use href="#lid"/>
+      <use href="#coinsIn" stroke-width="3.5"/>
+      <use href="#body"/>
+      <path d="M-56,20 h112 M-56,38 h112" stroke-width="3"/>
+      <use href="#bandL" stroke-width="4"/>
+      <use href="#bandR" stroke-width="4"/>
+      <use href="#lock" stroke-width="4.5"/>
+      <circle cx="0" cy="8" r="3" fill="#15152b"/>
+    </g>
+    <use href="#coinsFall" stroke-width="4"/>
+  </g>
+</svg>
